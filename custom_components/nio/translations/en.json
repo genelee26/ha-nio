@@ -1,0 +1,88 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect your NIO vehicle",
+        "description": "Sniff the vehicle status request from the NIO app (MITM proxy), then paste the full request URL and the Authorization Bearer token here.",
+        "data": {
+          "status_url": "Status request URL",
+          "token": "Bearer token",
+          "model": "Vehicle model"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate NIO",
+        "description": "Your NIO token was rejected. Sniff a fresh token from the app and paste it below. If the sign/device parameters changed too, paste the new status URL as well.",
+        "data": {
+          "token": "Bearer token",
+          "status_url": "Status request URL (optional)"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Could not parse vehicle_id / device_id / sign from the URL — paste the complete request URL from the app.",
+      "invalid_auth": "The NIO API rejected the token.",
+      "cannot_connect": "Could not reach the NIO API."
+    },
+    "abort": {
+      "already_configured": "This vehicle is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling cadence",
+        "description": "Polling the private API too aggressively can get the token rate-limited or invalidated.",
+        "data": {
+          "interval_driving": "Interval while driving (minutes)",
+          "interval_day": "Daytime interval (minutes)",
+          "interval_night": "Night interval (minutes)",
+          "day_start_hour": "Daytime starts at (hour)",
+          "day_end_hour": "Daytime ends at (hour)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": { "name": "Battery" },
+      "remaining_range": { "name": "Range (CLTC)" },
+      "remaining_actual_range": { "name": "Range (actual)" },
+      "range_achievement_rate": { "name": "Range achievement rate" },
+      "vehicle_state": {
+        "name": "Vehicle state",
+        "state": {
+          "driving": "Driving",
+          "parked": "Parked",
+          "resting": "Resting",
+          "unknown": "Unknown"
+        }
+      },
+      "charging_power": { "name": "Charging power" },
+      "inside_temperature": { "name": "Inside temperature" },
+      "outside_temperature": { "name": "Outside temperature" },
+      "mileage": { "name": "Mileage" },
+      "tyre_pressure_front_left": { "name": "Tyre pressure front left" },
+      "tyre_pressure_front_right": { "name": "Tyre pressure front right" },
+      "tyre_pressure_rear_left": { "name": "Tyre pressure rear left" },
+      "tyre_pressure_rear_right": { "name": "Tyre pressure rear right" },
+      "fota_version": { "name": "Firmware version" }
+    },
+    "binary_sensor": {
+      "driving": { "name": "Driving" },
+      "sleeping": { "name": "Sleeping" },
+      "door": { "name": "Doors" },
+      "window": { "name": "Windows" },
+      "lock": { "name": "Lock" },
+      "charging": { "name": "Charging" },
+      "connected": { "name": "Cloud connection" }
+    },
+    "device_tracker": {
+      "location": { "name": "Location" }
+    },
+    "button": {
+      "refresh": { "name": "Refresh data" }
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "连接你的蔚来汽车",
+        "description": "用抓包工具（MITM proxy）嗅探 NIO App 的车辆状态请求，把完整请求 URL 和 Authorization Bearer token 粘贴到下面。",
+        "data": {
+          "status_url": "状态请求 URL",
+          "token": "Bearer token",
+          "model": "车型"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新认证 NIO",
+        "description": "NIO token 已失效。从 App 重新嗅探一个新 token 粘贴到下面；如果 sign/device 参数也变了，请连同新的状态 URL 一起粘贴。",
+        "data": {
+          "token": "Bearer token",
+          "status_url": "状态请求 URL（可选）"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "无法从 URL 解析出 vehicle_id / device_id / sign——请粘贴 App 的完整请求 URL。",
+      "invalid_auth": "NIO API 拒绝了该 token。",
+      "cannot_connect": "无法连接 NIO API。"
+    },
+    "abort": {
+      "already_configured": "该车辆已配置。",
+      "reauth_successful": "重新认证成功。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "刷新频率",
+        "description": "私有 API 调用太频繁会被 NIO 限流甚至导致 token 失效。",
+        "data": {
+          "interval_driving": "驾驶中刷新间隔（分钟）",
+          "interval_day": "白天刷新间隔（分钟）",
+          "interval_night": "夜间刷新间隔（分钟）",
+          "day_start_hour": "白天开始（时）",
+          "day_end_hour": "白天结束（时）"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": { "name": "电池电量" },
+      "remaining_range": { "name": "续航(CLTC)" },
+      "remaining_actual_range": { "name": "续航(实际)" },
+      "range_achievement_rate": { "name": "续航达成率" },
+      "vehicle_state": {
+        "name": "车辆状态",
+        "state": {
+          "driving": "驾驶中",
+          "parked": "已停止",
+          "resting": "驻车休息",
+          "unknown": "未知"
+        }
+      },
+      "charging_power": { "name": "充电功率" },
+      "inside_temperature": { "name": "车内温度" },
+      "outside_temperature": { "name": "车外温度" },
+      "mileage": { "name": "总里程" },
+      "tyre_pressure_front_left": { "name": "胎压·左前" },
+      "tyre_pressure_front_right": { "name": "胎压·右前" },
+      "tyre_pressure_rear_left": { "name": "胎压·左后" },
+      "tyre_pressure_rear_right": { "name": "胎压·右后" },
+      "fota_version": { "name": "固件版本" }
+    },
+    "binary_sensor": {
+      "driving": { "name": "驾驶状态" },
+      "sleeping": { "name": "睡眠状态" },
+      "door": { "name": "车门" },
+      "window": { "name": "车窗" },
+      "lock": { "name": "车锁" },
+      "charging": { "name": "充电中" },
+      "connected": { "name": "云端连接" }
+    },
+    "device_tracker": {
+      "location": { "name": "位置" }
+    },
+    "button": {
+      "refresh": { "name": "数据刷新" }
+    }
+  }
+}

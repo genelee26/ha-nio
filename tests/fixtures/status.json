@@ -1,0 +1,166 @@
+{
+  "data": {
+    "nearby_car_ctrl": {
+      "has_auth": false,
+      "has_login": false,
+      "auth_precon": false
+    },
+    "hvac_status": {
+      "temperature": 17.0,
+      "outside_temperature": 14.0,
+      "air_conditioner_on": false,
+      "cbn_hi_t_dry_sts": 0,
+      "ccu_max_defrst_sts": 0,
+      "ccu_acmax_lamp_req": 0,
+      "ccu_heatg_max_lamp_req": 0,
+      "cbn_ovr_ht_mon_sts": 2,
+      "cbn_ovr_ht_act_sts": 2,
+      "cbn_ovr_ht_sts": 2,
+      "rem_sens_climate_set_sts": 0,
+      "rem_sens_climate_req": 0,
+      "sample_time": 1773731999780
+    },
+    "power_swap_order": {
+      "show": false
+    },
+    "light_status": {
+      "head_light_on": 0,
+      "parking_light_le_on": 0,
+      "parking_light_ri_on": 0,
+      "day_ti_runng_li_sts": 0,
+      "sample_time": 1773731999780
+    },
+    "heating_status": {
+      "sample_time": 1773731812048,
+      "steer_wheel_heat_sts": 0,
+      "hv_batt_pre_sts": 0,
+      "seat_heat_frnt_le_sts": 0,
+      "seat_heat_frnt_ri_sts": 0,
+      "seat_heat_re_le_sts": 0,
+      "seat_heat_re_ri_sts": 0,
+      "seat_heat_thrd_le_sts": 0,
+      "seat_heat_thrd_ri_sts": 0,
+      "seat_vent_frnt_le_sts": 0,
+      "seat_vent_frnt_ri_sts": 0,
+      "seat_vent_re_le_sts": 0,
+      "seat_vent_re_ri_sts": 0,
+      "btry_warm_up_sts": 0
+    },
+    "position_status": {
+      "longitude": 116.397428,
+      "latitude": 39.90923,
+      "sample_time": 1773731999780
+    },
+    "connection_status": {
+      "connected": true,
+      "cdc_connected": false,
+      "adc_connected": false,
+      "update_time": 1773616596397
+    },
+    "trip_share_status": {
+      "status": 2
+    },
+    "offcar_mode_status": {
+      "pet_mode": 0,
+      "pet_mode_event_time": 1773718006075,
+      "pet_account_id": 0,
+      "power_hold_mode": 0,
+      "power_hold_mode_event_time": 1773718006081,
+      "camping_mode": 0,
+      "camping_mode_event_time": 1773718006081,
+      "defender_mode": 0,
+      "defender_mode_event_time": 1773717997750,
+      "defender_account_id": 0,
+      "remote_video": 1,
+      "remote_video_event_time": 1773718003887,
+      "cpd_mode": 0,
+      "cpd_mode_event_time": 946684800000,
+      "cpd_mode_ft": 0,
+      "cpd_mode_ft_event_time": 946684800000
+    },
+    "maintain_status": {
+      "account_id": 0,
+      "maintain_status": 0,
+      "sample_time": 1748360094000
+    },
+    "window_status": {
+      "win_front_left_posn": 0,
+      "win_front_right_posn": 0,
+      "win_rear_left_posn": 0,
+      "win_rear_right_posn": 0,
+      "sun_roof_posn": 0,
+      "mirr_frnt_le_sts": 1,
+      "mirr_frnt_ri_sts": 1,
+      "sample_time": 1773717940662
+    },
+    "exterior_status": {
+      "vehicle_state": 2,
+      "mileage": 24648,
+      "ntester": false,
+      "sample_time": 1773731999780,
+      "comf_ena": 0,
+      "vehl_mode": 4,
+      "remote_park_mode": 0,
+      "prkg_actv_feature": 0,
+      "psap_hmi_status": 1
+    },
+    "fota_status": {
+      "last_part_no": "V0000000 AA",
+      "last_version": "Example.G1.1.AT.01_xxxxxx*3.3.0",
+      "current_part_no": "V0000000 AB",
+      "current_version": "Example.G1.1.AT.02_xxxxxx*3.3.1",
+      "fota_status": 0,
+      "sample_time": 1772977025000
+    },
+    "soc_status": {
+      "soc": 38.5,
+      "charge_state": 0,
+      "max_soc": 100.0,
+      "charger_type": 1,
+      "remaining_range": 194.0,
+      "remaining_actual_range": 133.0,
+      "sample_time": 1773731999780,
+      "lock_soc": 90.0,
+      "soc_lock_status": 0,
+      "charging_power": 0.0,
+      "charging_current": 0.0,
+      "charging_voltage": 0.0,
+      "chrg_req": 0,
+      "v2l_status": 0,
+      "pwr_swap_mod_sts": 0,
+      "max_soc_enable_on_vehl": true,
+      "chrg_phase_disp": 0,
+      "max_chrg_crrnt_set_lim": 5
+    },
+    "tyre_status": {
+      "rear_right_wheel_temp": 12,
+      "rear_left_wheel_temp": 13,
+      "front_left_wheel_temp": 12,
+      "front_right_wheel_temp": 12,
+      "sample_time": 1773731999780,
+      "front_left_wheel_press_bar": 2.6,
+      "front_right_wheel_press_bar": 2.6,
+      "rear_left_wheel_press_bar": 2.6,
+      "rear_right_wheel_press_bar": 2.6
+    },
+    "special_status": {
+      "swapping": 0
+    },
+    "vehicle_id": "0000000000000000000000000000abcd",
+    "door_status": {
+      "door_ajar_front_left_status": 1,
+      "door_ajar_front_right_status": 1,
+      "door_ajar_rear_left_status": 1,
+      "door_ajar_rear_right_status": 1,
+      "second_charge_port_ajar_status": 1,
+      "tailgate_ajar_status": 1,
+      "engine_hood_ajar_status": 1,
+      "vehicle_lock_status": 1,
+      "peps_entry_distance": 2,
+      "sample_time": 1773717936562
+    }
+  },
+  "request_id": "mk-AKp_XHZpuQCnAroDQzY",
+  "result_code": "success",
+  "server_time": 1773732007
+}
