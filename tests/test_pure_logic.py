@@ -51,17 +51,44 @@ def test_url_parse():
     print(f"  url parse: vehicle_id={vehicle_id}")
 
 
+def _any_door_open(door_status):
+    # Mirrors binary_sensor._any_door_open (kept HA-free here).
+    values = [door_status.get(f) for f in const.DOOR_AJAR_FIELDS]
+    if all(v is None for v in values):
+        return None
+    return any(v is not None and v != const.DOOR_CLOSED for v in values)
+
+
 def test_door_window_logic():
     doors = DATA["door_status"]
     values = [doors.get(f) for f in const.DOOR_AJAR_FIELDS]
     assert not any(v is None for v in values), "fixture missing ajar fields"
-    any_open = any(v not in (None, 0, const.DOOR_CLOSED) for v in values)
-    assert any_open is False, "fixture car has all doors closed (all == 1)"
+    assert _any_door_open(doors) is False, "fixture car has all doors closed (all == 1)"
 
     windows = DATA["window_status"]
     wvalues = [windows.get(f) for f in const.WINDOW_POSN_FIELDS]
     assert any(v not in (None, 0) for v in wvalues) is False
     print(f"  doors={values} windows={wvalues} -> all closed ✓")
+
+
+def test_door_open_semantics():
+    # Field-tested 2026-06-06: every opening cycled on a real EC6 and matched
+    # 1:1 against raw API captures — ajar fields read 0 when open, 1 when
+    # closed (NOT 2; the earlier "2 = open, 0 = unknown" assumption was wrong
+    # and made the doors binary_sensor blind to open doors).
+    closed = {f: 1 for f in const.DOOR_AJAR_FIELDS}
+
+    one_open = dict(closed, door_ajar_front_left_status=0)
+    assert _any_door_open(one_open) is True, "FL door open (0) must be detected"
+
+    all_open = {f: 0 for f in const.DOOR_AJAR_FIELDS}
+    assert _any_door_open(all_open) is True, "all openings open must be detected"
+
+    assert _any_door_open({}) is None, "missing section -> unknown"
+
+    # vehicle_lock_status: 1 = locked, 0 = unlocked (field-tested).
+    assert const.LOCK_LOCKED == 1
+    print("  door open semantics (0 = open) ✓")
 
 
 def test_vehicle_state_and_soc():
@@ -73,7 +100,13 @@ def test_vehicle_state_and_soc():
 
 
 if __name__ == "__main__":
-    for fn in (test_gcj02, test_url_parse, test_door_window_logic, test_vehicle_state_and_soc):
+    for fn in (
+        test_gcj02,
+        test_url_parse,
+        test_door_window_logic,
+        test_door_open_semantics,
+        test_vehicle_state_and_soc,
+    ):
         print(f"{fn.__name__}:")
         fn()
     print("ALL PURE-LOGIC TESTS PASSED")

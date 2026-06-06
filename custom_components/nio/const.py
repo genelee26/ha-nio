@@ -85,8 +85,8 @@ VEHICLE_STATES = {
     VEHICLE_STATE_RESTING: "resting",
 }
 
-# door_status *_ajar_status observed values: 1 = closed, 2 = open (assumed,
-# 0 treated as unknown). vehicle_lock_status: 1 = locked.
+# door_status *_ajar_status values (field-tested 2026-06-06, all 5 openings):
+# 1 = closed, 0 = open. vehicle_lock_status: 1 = locked, 0 = unlocked.
 DOOR_CLOSED = 1
 LOCK_LOCKED = 1
 

@@ -66,9 +66,11 @@ sniff a fresh token and paste it. No restart needed.
   obfuscation in mainland China). The device tracker converts to WGS-84
   in-process using the standard 7-parameter approximation, so HA's map shows
   the true position.
-- **Door semantics** are mapped from observed values (`1` = closed, `2` =
-  open, `0` = unknown). If your car reports differently, please open an issue
-  with the `door_status` payload.
+- **Door semantics** are field-tested on a real EC6 (every opening cycled and
+  matched 1:1 against raw API captures): `*_ajar_status` `1` = closed, `0` =
+  open; `vehicle_lock_status` `1` = locked, `0` = unlocked. Window `win_*_posn`
+  follows the legacy YAML behaviour (`0` = closed, `>0` = open). If your car
+  reports differently, please open an issue with the `door_status` payload.
 - A "battery low → swap reminder" stays a user automation on purpose — trigger
   on `sensor.<vehicle>_remaining_actual_range` at the time of day that suits
   your nearest swap station.

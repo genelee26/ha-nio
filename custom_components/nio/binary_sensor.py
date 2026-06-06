@@ -4,10 +4,12 @@ Door/window are aggregate checks across all openings — fixes the silently
 broken YAML templates that referenced non-existent ``door_front_left_status``
 fields (live API returns ``door_ajar_front_left_status``).
 
-Field semantics (observed; flip DOOR_CLOSED if real-world testing disagrees):
-- ``*_ajar_status``: 1 = closed, 2 = open, 0 = unknown
-- ``vehicle_lock_status``: 1 = locked
-- ``win_*_posn``: 0 = closed, >0 = open position
+Field semantics (field-tested 2026-06-06 — all 5 openings cycled one by one,
+12-step sequence matched 1:1 against raw API captures):
+- ``*_ajar_status``: 1 = closed, 0 = open
+- ``vehicle_lock_status``: 1 = locked, 0 = unlocked
+- ``win_*_posn``: 0 = closed, >0 = open position (carried over from the
+  legacy YAML templates; field names unchanged)
 """
 
 from __future__ import annotations
@@ -35,7 +37,8 @@ def _any_door_open(data: dict[str, Any]) -> bool | None:
     values = [doors.get(f) for f in DOOR_AJAR_FIELDS]
     if all(v is None for v in values):
         return None
-    return any(v is not None and v != DOOR_CLOSED and v != 0 for v in values)
+    # 0 = open (field-tested); anything that isn't "closed" counts as open.
+    return any(v is not None and v != DOOR_CLOSED for v in values)
 
 
 def _any_window_open(data: dict[str, Any]) -> bool | None:
