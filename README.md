@@ -1,5 +1,9 @@
 # ha-nio
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![release](https://img.shields.io/github/v/release/genelee26/ha-nio)](https://github.com/genelee26/ha-nio/releases)
+
 Home Assistant custom integration for **NIO** electric vehicles (EC6/ES6/ET5…),
 built on the same private API the NIO iOS app uses (`icar.nio.com`). There is
 no official NIO integration — this one gives you battery, range, doors/windows,
