@@ -32,6 +32,13 @@
   "options": {
     "step": {
       "init": {
+        "title": "NIO options",
+        "menu_options": {
+          "intervals": "Polling cadence",
+          "credentials": "Credentials (token)"
+        }
+      },
+      "intervals": {
         "title": "Polling cadence",
         "description": "Polling the private API too aggressively can get the token rate-limited or invalidated.",
         "data": {
@@ -41,7 +48,20 @@
           "day_start_hour": "Daytime starts at (hour)",
           "day_end_hour": "Daytime ends at (hour)"
         }
+      },
+      "credentials": {
+        "title": "Update credentials",
+        "description": "Paste a fresh Bearer token (re-sniff it from the NIO app). If the sign/device parameters changed too, also paste the new status request URL.",
+        "data": {
+          "token": "Bearer token",
+          "status_url": "Status request URL (optional)"
+        }
       }
+    },
+    "error": {
+      "invalid_url": "Could not parse vehicle_id / device_id / sign from the URL — paste the complete request URL from the app.",
+      "invalid_auth": "The NIO API rejected the token.",
+      "cannot_connect": "Could not reach the NIO API."
     }
   },
   "entity": {

@@ -32,6 +32,13 @@
   "options": {
     "step": {
       "init": {
+        "title": "NIO 选项",
+        "menu_options": {
+          "intervals": "刷新频率",
+          "credentials": "认证（Token）"
+        }
+      },
+      "intervals": {
         "title": "刷新频率",
         "description": "私有 API 调用太频繁会被 NIO 限流甚至导致 token 失效。",
         "data": {
@@ -41,7 +48,20 @@
           "day_start_hour": "白天开始（时）",
           "day_end_hour": "白天结束（时）"
         }
+      },
+      "credentials": {
+        "title": "更新认证",
+        "description": "粘贴新的 Bearer token（从 NIO App 重新嗅探）。如果 sign/device 参数也变了，请连同新的状态请求 URL 一起粘贴。",
+        "data": {
+          "token": "Bearer token",
+          "status_url": "状态请求 URL（可选）"
+        }
       }
+    },
+    "error": {
+      "invalid_url": "无法从 URL 解析出 vehicle_id / device_id / sign——请粘贴 App 的完整请求 URL。",
+      "invalid_auth": "NIO API 拒绝了该 token。",
+      "cannot_connect": "无法连接 NIO API。"
     }
   },
   "entity": {
