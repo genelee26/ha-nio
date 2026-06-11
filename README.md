@@ -115,19 +115,6 @@ sniff a fresh token and paste it. No restart needed.
   on `sensor.<vehicle>_remaining_actual_range` at the time of day that suits
   your nearest swap station.
 
-## Migrating from the YAML bundle
-
-If you used the previous scattered-YAML version (`rest_nio_car.yaml`,
-`ct_nio_data_master.yaml`, `update_nio_location.py`, the refresh automations):
-
-1. Set up this integration first and verify entities populate.
-2. Remove the YAML includes, the `shell_command`, the python script and the
-   two refresh/location automations.
-3. Delete leftover registry entries (e.g. `sensor.nio_vehicle_tracker_2`) in
-   *Settings → Entities*.
-4. Repoint dashboard cards: entity ids are now prefixed with the device name
-   (e.g. `sensor.nio_ec6_battery`, `device_tracker.nio_ec6_location`).
-
 ## Disclaimer
 
 Not affiliated with NIO Inc. Uses an undocumented private API that may change
