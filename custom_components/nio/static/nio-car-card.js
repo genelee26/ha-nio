@@ -8,7 +8,7 @@
  */
 
 const STATIC_BASE = "/nio_static";
-const ASSET_VER = "8"; // bump when images under static/cars change (cache-buster)
+const ASSET_VER = "9"; // bump when images under static/cars change (cache-buster)
 const MANIFEST_URL = `${STATIC_BASE}/cars/cars_manifest.json?a=${ASSET_VER}`;
 
 let _manifestPromise = null;
