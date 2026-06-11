@@ -135,6 +135,12 @@ class NioCarCard extends HTMLElement {
     return `NIO ${model}`;
   }
 
+  // bar title sits next to the brand logo, so drop a leading "NIO " to avoid
+  // showing the marque twice (logo + word). Popup keeps the full _title().
+  _nameOnly() {
+    return this._title().replace(/^NIO\s+/i, "");
+  }
+
   _render() {
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     const cfg = this._config || {};
@@ -187,8 +193,16 @@ class NioCarCard extends HTMLElement {
                background: rgba(${barRgb.join(",")}, ${barOpacity});
                backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
                color: ${barFg}; cursor: pointer; }
-        .title { font-size: 16px; font-weight: 500; white-space: nowrap; }
-        .title .range { font-size: 13px; font-weight: 400; margin-left: 6px; opacity: .95; }
+        /* brand logo + name + range share one line, one weight, one size —
+           a single baseline so nothing drifts. The logo is the map-marker
+           glyph used as a mask, filled with the bar's foreground colour so it
+           tracks light/dark bars automatically. */
+        .title { display: flex; align-items: center; gap: 7px;
+                 font-size: 16px; font-weight: 500; white-space: nowrap; }
+        .brand { flex: none; width: 20px; height: 20px; background-color: currentColor;
+                 -webkit-mask: url(${STATIC_BASE}/nio_brand.png?a=${ASSET_VER}) no-repeat center / contain;
+                 mask: url(${STATIC_BASE}/nio_brand.png?a=${ASSET_VER}) no-repeat center / contain; }
+        .title .range { margin-left: 5px; opacity: .92; }
         .icons { display: flex; gap: 14px; }
         .icon-item { display: flex; flex-direction: column; align-items: center; min-width: 34px; }
         .icon-item ha-icon { --mdc-icon-size: 22px; color: ${barFg}; }
@@ -201,7 +215,7 @@ class NioCarCard extends HTMLElement {
         <div class="canvas">
         <div class="img-wrap" id="img"><img src="${this._imageUrl()}" alt=""></div>
         <div class="bar" id="bar">
-          <span class="title">${this._title()}<span class="range" id="range"></span></span>
+          <span class="title"><span class="brand"></span><span>${this._nameOnly()}</span><span class="range" id="range"></span></span>
           <div class="icons">
             ${iconItems
               .map(
