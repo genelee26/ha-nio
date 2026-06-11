@@ -1,0 +1,15 @@
+# Plain picture-glance fallback for the NIO integration.
+# Replace __PREFIX__ (e.g. nio_ec6) and __CAR_IMAGE__ before use.
+# See lovelace/README.md. The bundled "NIO Car Card" is the recommended option.
+type: picture-glance
+title: NIO
+image: __CAR_IMAGE__   # e.g. /nio_static/cars/ec6_star_gray.webp
+entities:
+  - entity: sensor.__PREFIX___battery
+  - entity: binary_sensor.__PREFIX___driving
+    icon: mdi:car-off
+  - entity: binary_sensor.__PREFIX___sleeping
+  - entity: binary_sensor.__PREFIX___doors
+    icon: mdi:car-door-lock
+  - entity: binary_sensor.__PREFIX___windows
+    show_state: false

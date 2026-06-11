@@ -1,0 +1,497 @@
+{
+ "ec6": {
+  "name": "EC6",
+  "colors": [
+   {
+    "slug": "deep_black",
+    "zh": "深空黑",
+    "file": "ec6_deep_black.webp",
+    "thumb": "thumbs/ec6_deep_black.webp"
+   },
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "ec6_cloud_white.webp",
+    "thumb": "thumbs/ec6_cloud_white.webp"
+   },
+   {
+    "slug": "star_gray",
+    "zh": "星灰",
+    "file": "ec6_star_gray.webp",
+    "thumb": "thumbs/ec6_star_gray.webp"
+   },
+   {
+    "slug": "dawn_gold",
+    "zh": "曙光金",
+    "file": "ec6_dawn_gold.webp",
+    "thumb": "thumbs/ec6_dawn_gold.webp"
+   },
+   {
+    "slug": "stratosphere_blue",
+    "zh": "同温层蓝",
+    "file": "ec6_stratosphere_blue.webp",
+    "thumb": "thumbs/ec6_stratosphere_blue.webp"
+   },
+   {
+    "slug": "southern_star_blue",
+    "zh": "南极星蓝",
+    "file": "ec6_southern_star_blue.webp",
+    "thumb": "thumbs/ec6_southern_star_blue.webp"
+   },
+   {
+    "slug": "mirage_purple",
+    "zh": "灵境紫",
+    "file": "ec6_mirage_purple.webp",
+    "thumb": "thumbs/ec6_mirage_purple.webp"
+   },
+   {
+    "slug": "radiant_silver",
+    "zh": "辉银",
+    "file": "ec6_radiant_silver.webp",
+    "thumb": "thumbs/ec6_radiant_silver.webp"
+   }
+  ]
+ },
+ "ec7": {
+  "name": "EC7",
+  "colors": [
+   {
+    "slug": "deep_black",
+    "zh": "深空黑",
+    "file": "ec7_deep_black.webp",
+    "thumb": "thumbs/ec7_deep_black.webp"
+   },
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "ec7_cloud_white.webp",
+    "thumb": "thumbs/ec7_cloud_white.webp"
+   },
+   {
+    "slug": "star_gray",
+    "zh": "星灰",
+    "file": "ec7_star_gray.webp",
+    "thumb": "thumbs/ec7_star_gray.webp"
+   },
+   {
+    "slug": "dawn_gold",
+    "zh": "曙光金",
+    "file": "ec7_dawn_gold.webp",
+    "thumb": "thumbs/ec7_dawn_gold.webp"
+   },
+   {
+    "slug": "stratosphere_blue",
+    "zh": "同温层蓝",
+    "file": "ec7_stratosphere_blue.webp",
+    "thumb": "thumbs/ec7_stratosphere_blue.webp"
+   },
+   {
+    "slug": "southern_star_blue",
+    "zh": "南极星蓝",
+    "file": "ec7_southern_star_blue.webp",
+    "thumb": "thumbs/ec7_southern_star_blue.webp"
+   },
+   {
+    "slug": "nebula_red",
+    "zh": "星云红",
+    "file": "ec7_nebula_red.webp",
+    "thumb": "thumbs/ec7_nebula_red.webp"
+   }
+  ]
+ },
+ "es6": {
+  "name": "ES6",
+  "colors": [
+   {
+    "slug": "deep_black",
+    "zh": "深空黑",
+    "file": "es6_deep_black.webp",
+    "thumb": "thumbs/es6_deep_black.webp"
+   },
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "es6_cloud_white.webp",
+    "thumb": "thumbs/es6_cloud_white.webp"
+   },
+   {
+    "slug": "star_gray",
+    "zh": "星灰",
+    "file": "es6_star_gray.webp",
+    "thumb": "thumbs/es6_star_gray.webp"
+   },
+   {
+    "slug": "dawn_gold",
+    "zh": "曙光金",
+    "file": "es6_dawn_gold.webp",
+    "thumb": "thumbs/es6_dawn_gold.webp"
+   },
+   {
+    "slug": "stratosphere_blue",
+    "zh": "同温层蓝",
+    "file": "es6_stratosphere_blue.webp",
+    "thumb": "thumbs/es6_stratosphere_blue.webp"
+   },
+   {
+    "slug": "southern_star_blue",
+    "zh": "南极星蓝",
+    "file": "es6_southern_star_blue.webp",
+    "thumb": "thumbs/es6_southern_star_blue.webp"
+   },
+   {
+    "slug": "galaxy_purple",
+    "zh": "银河紫",
+    "file": "es6_galaxy_purple.webp",
+    "thumb": "thumbs/es6_galaxy_purple.webp"
+   },
+   {
+    "slug": "moon_silver",
+    "zh": "月辉银",
+    "file": "es6_moon_silver.webp",
+    "thumb": "thumbs/es6_moon_silver.webp"
+   }
+  ]
+ },
+ "es8": {
+  "name": "ES8",
+  "colors": [
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "es8_cloud_white.webp",
+    "thumb": "thumbs/es8_cloud_white.webp"
+   },
+   {
+    "slug": "dawn_gold",
+    "zh": "曙光金",
+    "file": "es8_dawn_gold.webp",
+    "thumb": "thumbs/es8_dawn_gold.webp"
+   },
+   {
+    "slug": "southern_star_blue",
+    "zh": "南极星蓝",
+    "file": "es8_southern_star_blue.webp",
+    "thumb": "thumbs/es8_southern_star_blue.webp"
+   },
+   {
+    "slug": "nebula_red",
+    "zh": "星云红",
+    "file": "es8_nebula_red.webp",
+    "thumb": "thumbs/es8_nebula_red.webp"
+   },
+   {
+    "slug": "moon_silver",
+    "zh": "月辉银",
+    "file": "es8_moon_silver.webp",
+    "thumb": "thumbs/es8_moon_silver.webp"
+   },
+   {
+    "slug": "star_ripple_gray",
+    "zh": "星澜灰",
+    "file": "es8_star_ripple_gray.webp",
+    "thumb": "thumbs/es8_star_ripple_gray.webp"
+   },
+   {
+    "slug": "polar_night_black",
+    "zh": "极夜黑",
+    "file": "es8_polar_night_black.webp",
+    "thumb": "thumbs/es8_polar_night_black.webp"
+   }
+  ]
+ },
+ "es9": {
+  "name": "ES9",
+  "colors": [
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "es9_cloud_white.webp",
+    "thumb": "thumbs/es9_cloud_white.webp"
+   },
+   {
+    "slug": "star_green",
+    "zh": "星辰绿",
+    "file": "es9_star_green.webp",
+    "thumb": "thumbs/es9_star_green.webp"
+   },
+   {
+    "slug": "southern_star_blue",
+    "zh": "南极星蓝",
+    "file": "es9_southern_star_blue.webp",
+    "thumb": "thumbs/es9_southern_star_blue.webp"
+   },
+   {
+    "slug": "nebula_red",
+    "zh": "M42星云红",
+    "file": "es9_nebula_red.webp",
+    "thumb": "thumbs/es9_nebula_red.webp"
+   },
+   {
+    "slug": "moon_silver",
+    "zh": "月辉银",
+    "file": "es9_moon_silver.webp",
+    "thumb": "thumbs/es9_moon_silver.webp"
+   },
+   {
+    "slug": "polar_night_black",
+    "zh": "极夜黑",
+    "file": "es9_polar_night_black.webp",
+    "thumb": "thumbs/es9_polar_night_black.webp"
+   },
+   {
+    "slug": "morning_gold",
+    "zh": "晨晖金",
+    "file": "es9_morning_gold.webp",
+    "thumb": "thumbs/es9_morning_gold.webp"
+   },
+   {
+    "slug": "two_tone_2078",
+    "zh": null,
+    "file": "es9_two_tone_2078.webp",
+    "thumb": "thumbs/es9_two_tone_2078.webp"
+   },
+   {
+    "slug": "two_tone_2079",
+    "zh": null,
+    "file": "es9_two_tone_2079.webp",
+    "thumb": "thumbs/es9_two_tone_2079.webp"
+   }
+  ]
+ },
+ "et5": {
+  "name": "ET5",
+  "colors": [
+   {
+    "slug": "deep_black",
+    "zh": "深空黑",
+    "file": "et5_deep_black.webp",
+    "thumb": "thumbs/et5_deep_black.webp"
+   },
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "et5_cloud_white.webp",
+    "thumb": "thumbs/et5_cloud_white.webp"
+   },
+   {
+    "slug": "star_gray",
+    "zh": "星灰",
+    "file": "et5_star_gray.webp",
+    "thumb": "thumbs/et5_star_gray.webp"
+   },
+   {
+    "slug": "stratosphere_blue",
+    "zh": "同温层蓝",
+    "file": "et5_stratosphere_blue.webp",
+    "thumb": "thumbs/et5_stratosphere_blue.webp"
+   },
+   {
+    "slug": "cloud_dawn_yellow",
+    "zh": "云初黄",
+    "file": "et5_cloud_dawn_yellow.webp",
+    "thumb": "thumbs/et5_cloud_dawn_yellow.webp"
+   },
+   {
+    "slug": "mirror_pink",
+    "zh": "镜空粉",
+    "file": "et5_mirror_pink.webp",
+    "thumb": "thumbs/et5_mirror_pink.webp"
+   },
+   {
+    "slug": "moon_silver",
+    "zh": "月辉银",
+    "file": "et5_moon_silver.webp",
+    "thumb": "thumbs/et5_moon_silver.webp"
+   },
+   {
+    "slug": "far_sky_purple",
+    "zh": "远空紫",
+    "file": "et5_far_sky_purple.webp",
+    "thumb": "thumbs/et5_far_sky_purple.webp"
+   }
+  ]
+ },
+ "et5t": {
+  "name": "ET5T",
+  "colors": [
+   {
+    "slug": "deep_black",
+    "zh": "深空黑",
+    "file": "et5t_deep_black.webp",
+    "thumb": "thumbs/et5t_deep_black.webp"
+   },
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "et5t_cloud_white.webp",
+    "thumb": "thumbs/et5t_cloud_white.webp"
+   },
+   {
+    "slug": "star_gray",
+    "zh": "星灰",
+    "file": "et5t_star_gray.webp",
+    "thumb": "thumbs/et5t_star_gray.webp"
+   },
+   {
+    "slug": "stratosphere_blue",
+    "zh": "同温层蓝",
+    "file": "et5t_stratosphere_blue.webp",
+    "thumb": "thumbs/et5t_stratosphere_blue.webp"
+   },
+   {
+    "slug": "cloud_dawn_yellow",
+    "zh": "云初黄",
+    "file": "et5t_cloud_dawn_yellow.webp",
+    "thumb": "thumbs/et5t_cloud_dawn_yellow.webp"
+   },
+   {
+    "slug": "mirror_pink",
+    "zh": "镜空粉",
+    "file": "et5t_mirror_pink.webp",
+    "thumb": "thumbs/et5t_mirror_pink.webp"
+   },
+   {
+    "slug": "moon_silver",
+    "zh": "月辉银",
+    "file": "et5t_moon_silver.webp",
+    "thumb": "thumbs/et5t_moon_silver.webp"
+   },
+   {
+    "slug": "far_sky_purple",
+    "zh": "远空紫",
+    "file": "et5t_far_sky_purple.webp",
+    "thumb": "thumbs/et5t_far_sky_purple.webp"
+   }
+  ]
+ },
+ "et7": {
+  "name": "ET7",
+  "colors": [
+   {
+    "slug": "deep_black",
+    "zh": "深空黑",
+    "file": "et7_deep_black.webp",
+    "thumb": "thumbs/et7_deep_black.webp"
+   },
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "et7_cloud_white.webp",
+    "thumb": "thumbs/et7_cloud_white.webp"
+   },
+   {
+    "slug": "dawn_gold",
+    "zh": "曙光金",
+    "file": "et7_dawn_gold.webp",
+    "thumb": "thumbs/et7_dawn_gold.webp"
+   },
+   {
+    "slug": "southern_star_blue",
+    "zh": "南极星蓝",
+    "file": "et7_southern_star_blue.webp",
+    "thumb": "thumbs/et7_southern_star_blue.webp"
+   },
+   {
+    "slug": "aurora_green",
+    "zh": "极光绿",
+    "file": "et7_aurora_green.webp",
+    "thumb": "thumbs/et7_aurora_green.webp"
+   },
+   {
+    "slug": "dawn_sky_silver",
+    "zh": "黎空银",
+    "file": "et7_dawn_sky_silver.webp",
+    "thumb": "thumbs/et7_dawn_sky_silver.webp"
+   },
+   {
+    "slug": "moon_silver",
+    "zh": "月辉银",
+    "file": "et7_moon_silver.webp",
+    "thumb": "thumbs/et7_moon_silver.webp"
+   }
+  ]
+ },
+ "et9": {
+  "name": "ET9",
+  "colors": [
+   {
+    "slug": "deep_black",
+    "zh": "深空黑",
+    "file": "et9_deep_black.webp",
+    "thumb": "thumbs/et9_deep_black.webp"
+   },
+   {
+    "slug": "cloud_white",
+    "zh": "云白",
+    "file": "et9_cloud_white.webp",
+    "thumb": "thumbs/et9_cloud_white.webp"
+   },
+   {
+    "slug": "dawn_gold",
+    "zh": "曙光金",
+    "file": "et9_dawn_gold.webp",
+    "thumb": "thumbs/et9_dawn_gold.webp"
+   },
+   {
+    "slug": "star_green",
+    "zh": "星辰绿",
+    "file": "et9_star_green.webp",
+    "thumb": "thumbs/et9_star_green.webp"
+   },
+   {
+    "slug": "southern_star_blue",
+    "zh": "南极星蓝",
+    "file": "et9_southern_star_blue.webp",
+    "thumb": "thumbs/et9_southern_star_blue.webp"
+   },
+   {
+    "slug": "nebula_red",
+    "zh": "M42星云红",
+    "file": "et9_nebula_red.webp",
+    "thumb": "thumbs/et9_nebula_red.webp"
+   },
+   {
+    "slug": "moon_silver",
+    "zh": "月辉银",
+    "file": "et9_moon_silver.webp",
+    "thumb": "thumbs/et9_moon_silver.webp"
+   },
+   {
+    "slug": "midnight_porcelain_blue",
+    "zh": "子夜镜瓷蓝",
+    "file": "et9_midnight_porcelain_blue.webp",
+    "thumb": "thumbs/et9_midnight_porcelain_blue.webp"
+   },
+   {
+    "slug": "two_tone_1636",
+    "zh": null,
+    "file": "et9_two_tone_1636.webp",
+    "thumb": "thumbs/et9_two_tone_1636.webp"
+   },
+   {
+    "slug": "two_tone_1637",
+    "zh": null,
+    "file": "et9_two_tone_1637.webp",
+    "thumb": "thumbs/et9_two_tone_1637.webp"
+   },
+   {
+    "slug": "two_tone_1670",
+    "zh": null,
+    "file": "et9_two_tone_1670.webp",
+    "thumb": "thumbs/et9_two_tone_1670.webp"
+   },
+   {
+    "slug": "floating_gold",
+    "zh": "浮光跃金",
+    "file": "et9_floating_gold.webp",
+    "thumb": "thumbs/et9_floating_gold.webp"
+   },
+   {
+    "slug": "two_tone_2041",
+    "zh": null,
+    "file": "et9_two_tone_2041.webp",
+    "thumb": "thumbs/et9_two_tone_2041.webp"
+   }
+  ]
+ }
+}

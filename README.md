@@ -26,6 +26,42 @@ invalidate your token, if hammered): every 5 min while driving, 15 min in the
 daytime, 30 min overnight. All intervals are configurable in the integration
 options.
 
+## Lovelace card
+
+The integration ships a custom card — **NIO Car Card** — and registers it
+automatically (no manual Lovelace resource, no extra HACS frontend install).
+After the integration loads, it appears in *Add card* as **NIO Car Card**.
+
+![card](images/nio_card.png)
+
+It shows the official factory render for your car, a glass status bar (title +
+CLTC range), five state icons (battery / driving / sleeping / doors / windows,
+with red alerts when a door or window is open), and a tap-to-open popup with the
+full status breakdown plus a refresh button.
+
+Everything is set in the **visual editor** — pick the car (NIO device), model
+and body colour from swatches; no YAML required:
+
+| Option | Effect |
+| --- | --- |
+| Vehicle | The NIO device — entities are resolved from its registry, so renamed entity ids keep working |
+| Model / Colour | Selects the bundled render; 9 models, every factory colour |
+| Name | Card title (defaults to `NIO <MODEL>`) |
+| Background colour | Studio backdrop tint behind the (transparent) car |
+| Background gradient | Top-left-light → bottom-right-dark studio sheen (on by default) |
+| Bar colour / opacity | Status-bar colour and translucency; icon/text colour auto-inverts for contrast |
+| Show labels | State text under each icon; the bar auto-grows and the car scales to never be covered |
+| Background image URL | Optional — overrides the backdrop colour with your own image |
+
+Zero frontend dependencies: the popup, styling and editor are all self-contained
+(no `card_mod` / `browser_mod` / `streamline-card`). A plain `picture-glance`
+fallback snippet is in [`lovelace/`](lovelace/) for anyone who prefers raw YAML.
+
+> [!NOTE]
+> Car renders are the manufacturer's official press/configurator images,
+> bundled for convenience and trimmed/feathered for the card. They remain the
+> property of NIO Inc.; this project claims no rights over them.
+
 ## Installation
 
 ### HACS (custom repository)

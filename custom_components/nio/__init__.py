@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.loader import async_get_integration
 
 from .api import NioApiClient
 from .const import (
@@ -35,7 +37,8 @@ PLATFORMS: list[Platform] = [
 
 async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
     """Set up NIO from a config entry."""
-    # Serve bundled assets (map marker logo) — registered once per HA run.
+    # Serve bundled assets (map marker logo, car renders, lovelace card)
+    # and auto-register the card JS — once per HA run.
     if not hass.data.setdefault(DOMAIN, {}).get("static_registered"):
         await hass.http.async_register_static_paths(
             [
@@ -45,6 +48,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
                     cache_headers=True,
                 )
             ]
+        )
+        integration = await async_get_integration(hass, DOMAIN)
+        add_extra_js_url(
+            hass, f"{STATIC_URL_BASE}/nio-car-card.js?v={integration.version}"
         )
         hass.data[DOMAIN]["static_registered"] = True
     client = NioApiClient(

@@ -3,10 +3,11 @@
   "name": "NIO",
   "codeowners": ["@genelee26"],
   "config_flow": true,
+  "dependencies": ["http", "frontend"],
   "documentation": "https://github.com/genelee26/ha-nio",
   "integration_type": "device",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/genelee26/ha-nio/issues",
   "requirements": [],
-  "version": "0.1.5"
+  "version": "0.2.0"
 }
