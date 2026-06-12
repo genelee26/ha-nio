@@ -1,11 +1,10 @@
-"""HA-free smoke tests: gcj02 conversion, URL parsing, aggregate door/window
-logic against the captured fixture. Run directly: python tests/test_pure_logic.py
+"""HA-free smoke tests: gcj02 conversion and aggregate door/window/state logic
+against the captured fixture. Run directly: python tests/test_pure_logic.py
 """
 
 import json
 import sys
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
 
 COMPONENT = Path(__file__).parent.parent / "custom_components" / "nio"
 sys.path.insert(0, str(COMPONENT))
@@ -30,25 +29,6 @@ def test_gcj02():
     # Matches the legacy update_nio_location.py output (same algorithm).
     assert (lng, lat) == gcj02.gcj02_to_wgs84(pos["longitude"], pos["latitude"])
     print(f"  gcj02: ({pos['latitude']:.6f},{pos['longitude']:.6f}) -> ({lat},{lng})")
-
-
-def test_url_parse():
-    # Replicates config_flow._parse_status_url without importing HA.
-    # Example values only — not real credentials.
-    url = (
-        "https://icar.nio.com/api/2/rvs/vehicle/0000000000000000000000000000abcd/status"
-        "?field=soc&app_ver=6.3.0&region=cn&app_id=10002"
-        "&device_id=00000000000000000000000000000000&lang=zh-CN"
-        "&timestamp=1773732007&sign=0000000000000000000000000000000a"
-    )
-    parsed = urlparse(url)
-    parts = [p for p in parsed.path.split("/") if p]
-    vehicle_id = parts[parts.index("vehicle") + 1]
-    qs = parse_qs(parsed.query)
-    assert vehicle_id == "0000000000000000000000000000abcd"
-    assert qs["device_id"][0] == "00000000000000000000000000000000"
-    assert qs["sign"][0] == "0000000000000000000000000000000a"
-    print(f"  url parse: vehicle_id={vehicle_id}")
 
 
 def _any_door_open(door_status):
@@ -102,7 +82,6 @@ def test_vehicle_state_and_soc():
 if __name__ == "__main__":
     for fn in (
         test_gcj02,
-        test_url_parse,
         test_door_window_logic,
         test_door_open_semantics,
         test_vehicle_state_and_soc,
