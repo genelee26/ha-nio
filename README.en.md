@@ -5,6 +5,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![release](https://img.shields.io/github/v/release/genelee26/ha-nio)](https://github.com/genelee26/ha-nio/releases)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/genelee26)
 
 Home Assistant custom integration for **NIO** electric vehicles (EC6/ES6/ET5…),
 built on the same private API the NIO iOS app uses (`icar.nio.com`). There is
@@ -120,6 +121,19 @@ needed.
 - A "battery low → swap reminder" stays a user automation on purpose — trigger
   on `sensor.<vehicle>_remaining_actual_range` at the time of day that suits
   your nearest swap station.
+
+## Support
+
+A spare-time open-source project — free, and always will be. If it saved you
+some hassle or made you smile, feel free to buy me a coffee ☕ — purely
+encouragement, it never gates any feature.
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/genelee26)
+
+Friends in China can tip via WeChat Pay — the QR code is in the
+[Chinese README](README.md).
+
+Thanks to everyone who chips in. 🙏
 
 ## Acknowledgements
 

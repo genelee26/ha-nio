@@ -5,6 +5,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![release](https://img.shields.io/github/v/release/genelee26/ha-nio)](https://github.com/genelee26/ha-nio/releases)
+[![Buy Me A Coffee](https://img.shields.io/badge/请我喝杯咖啡-Buy_Me_A_Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/genelee26)
 
 把 **蔚来（NIO）** 电动车（EC6/ES6/ET5…）接入 Home Assistant 的自定义集成，基于
 蔚来 iOS App 同款的私有 API（`icar.nio.com`）。蔚来没有官方 HA 集成——这个集成给你
@@ -103,6 +104,19 @@ token 早晚会过期，到时 HA 会弹出「重新认证」通知——重新�
   `door_status` 原始数据开 issue。
 - **「电量低 → 换电提醒」刻意留作用户自建自动化**——按 `sensor.<车>_remaining_actual_range`
   在最适合你就近换电站的时间点触发。
+
+## 赞赏支持
+
+纯业余时间做着玩的开源项目，免费、而且会一直免费。要是它帮你省了心、或者让你会心一笑，
+欢迎请我喝杯咖啡 ☕ —— 纯属鼓励，绝不影响任何功能。
+
+[![Buy Me A Coffee](https://img.shields.io/badge/请我喝杯咖啡-Buy_Me_A_Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/genelee26)
+
+国内的同道也可以微信赞赏，扫下面这个码就行：
+
+<img src="images/wechat_pay.png" width="280" alt="微信赞赏码">
+
+谢谢每一位同道中人的鼓励 🙏
 
 ## 致谢
 
