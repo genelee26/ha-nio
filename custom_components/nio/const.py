@@ -17,7 +17,6 @@ CONF_TIMESTAMP = "timestamp"
 CONF_APP_VER = "app_ver"
 CONF_REGION = "region"
 CONF_MODEL = "model"
-CONF_STATUS_URL = "status_url"
 
 DEFAULT_APP_VER = "6.3.0"
 DEFAULT_REGION = "cn"

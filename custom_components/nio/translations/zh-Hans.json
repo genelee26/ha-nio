@@ -3,24 +3,29 @@
     "step": {
       "user": {
         "title": "连接你的蔚来汽车",
-        "description": "用抓包工具（MITM proxy）嗅探 NIO App 的车辆状态请求，把完整请求 URL 和 Authorization Bearer token 粘贴到下面。",
+        "description": "用抓包工具（MITM proxy）嗅探 NIO App 的一次车辆状态请求（icar.nio.com/api/2/rvs/vehicle/.../status），把各项值逐个填入下面。vehicle_id 在 URL 路径里；device_id、sign、timestamp 是查询参数；token 是 Authorization Bearer 请求头。sign 和 timestamp 必须取自同一次请求。",
         "data": {
-          "status_url": "状态请求 URL",
-          "token": "Bearer token",
+          "vehicle_id": "vehicle_id（URL 路径）",
+          "device_id": "device_id",
+          "sign": "sign",
+          "timestamp": "timestamp",
+          "token": "Bearer token（Authorization 头）",
           "model": "车型"
         }
       },
       "reauth_confirm": {
         "title": "重新认证 NIO",
-        "description": "NIO token 已失效。从 App 重新嗅探一个新 token 粘贴到下面；如果 sign/device 参数也变了，请连同新的状态 URL 一起粘贴。",
+        "description": "NIO token 已失效。重新嗅探一个新 token 填入下面。其它值已预填——只有在某项也轮换了才改它（改 sign 时要连 timestamp 一起换）。",
         "data": {
-          "token": "Bearer token",
-          "status_url": "状态请求 URL（可选）"
+          "token": "Bearer token（Authorization 头）",
+          "vehicle_id": "vehicle_id",
+          "device_id": "device_id",
+          "sign": "sign",
+          "timestamp": "timestamp"
         }
       }
     },
     "error": {
-      "invalid_url": "无法从 URL 解析出 vehicle_id / device_id / sign——请粘贴 App 的完整请求 URL。",
       "invalid_auth": "NIO API 拒绝了该 token。",
       "cannot_connect": "无法连接 NIO API。"
     },
@@ -51,15 +56,17 @@
       },
       "credentials": {
         "title": "更新认证",
-        "description": "粘贴新的 Bearer token（从 NIO App 重新嗅探）。如果 sign/device 参数也变了，请连同新的状态请求 URL 一起粘贴。",
+        "description": "填入新的 Bearer token（从 NIO App 重新嗅探）。其它值已预填——只有在某项也轮换了才改它（改 sign 时要连 timestamp 一起换）。",
         "data": {
-          "token": "Bearer token",
-          "status_url": "状态请求 URL（可选）"
+          "token": "Bearer token（Authorization 头）",
+          "vehicle_id": "vehicle_id",
+          "device_id": "device_id",
+          "sign": "sign",
+          "timestamp": "timestamp"
         }
       }
     },
     "error": {
-      "invalid_url": "无法从 URL 解析出 vehicle_id / device_id / sign——请粘贴 App 的完整请求 URL。",
       "invalid_auth": "NIO API 拒绝了该 token。",
       "cannot_connect": "无法连接 NIO API。"
     }

@@ -85,12 +85,17 @@ to sniff it once:
 2. Open the NIO app, pull-to-refresh the vehicle page.
 3. Find the request to
    `https://icar.nio.com/api/2/rvs/vehicle/<vehicle_id>/status?...`
-4. Copy **the full request URL** and the **`Authorization: Bearer …` token**.
-5. In HA: *Settings → Devices & services → Add integration → NIO*, paste both.
+4. Read off five values from that one request:
+   - `vehicle_id` — in the URL path (`/vehicle/<vehicle_id>/status`)
+   - `device_id`, `sign`, `timestamp` — query-string parameters
+   - the token — the `Authorization: Bearer …` request **header**
+5. In HA: *Settings → Devices & services → Add integration → NIO*, enter each
+   value in its own field.
 
-`vehicle_id`, `device_id`, `sign`, `timestamp`, `app_ver` and `region` are
-parsed from the URL automatically and stored in HA's encrypted config storage —
-no plaintext YAML.
+`sign` and `timestamp` must come from the **same** request — the signature is
+computed over the timestamp, so they are stored and replayed as a pair. Values
+are kept in HA's encrypted config storage (no plaintext YAML); `app_ver` and
+`region` use bundled defaults.
 
 > [!WARNING]
 > The Bearer token is your NIO account session credential — treat it like a
@@ -98,7 +103,8 @@ no plaintext YAML.
 > the token itself would allow remote vehicle control elsewhere.
 
 When the token eventually expires, HA raises a re-authentication notification —
-sniff a fresh token and paste it. No restart needed.
+sniff a fresh token and enter it (the other values are prefilled). No restart
+needed.
 
 ## Notes
 

@@ -1,23 +1,24 @@
 """Config flow for the NIO integration.
 
-Setup is "paste what you sniffed": the full status request URL from the NIO
-iOS app plus the Bearer token. vehicle_id / device_id / sign / timestamp /
-app_ver / region are all parsed out of the URL, validated with a live API
-call, then stored in the config entry (no more plaintext YAML).
+Setup is "enter what you sniffed": the four request values from the NIO iOS
+app's vehicle-status call — vehicle_id (URL path), device_id, sign and
+timestamp (query string) — plus the Authorization Bearer token (request
+header). sign and timestamp are kept together because the signature is computed
+over the timestamp; they are replayed unchanged. app_ver / region use the
+bundled defaults. Everything is stored in the config entry (no plaintext YAML).
 
 Options is a menu: polling cadence (number-entry boxes) and credentials
-(update the token / re-paste the URL without waiting for a reauth prompt).
+(update the token / any of the sniffed ids without waiting for a reauth prompt).
 """
 
 from __future__ import annotations
 
 import logging
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
@@ -33,7 +34,6 @@ from .const import (
     CONF_MODEL,
     CONF_REGION,
     CONF_SIGN,
-    CONF_STATUS_URL,
     CONF_TIMESTAMP,
     CONF_TOKEN,
     CONF_VEHICLE_ID,
@@ -55,42 +55,26 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# The five values sniffed from one app status request. sign+timestamp are a
+# pair (the signature is computed over the timestamp), so both are required.
 STEP_USER_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_STATUS_URL): str,
+        vol.Required(CONF_VEHICLE_ID): str,
+        vol.Required(CONF_DEVICE_ID): str,
+        vol.Required(CONF_SIGN): str,
+        vol.Required(CONF_TIMESTAMP): str,
         vol.Required(CONF_TOKEN): str,
         vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
     }
 )
 
+# Fields that identify the request; entered on setup, re-enterable on reauth.
+ID_FIELDS = (CONF_VEHICLE_ID, CONF_DEVICE_ID, CONF_SIGN, CONF_TIMESTAMP)
 
-def _parse_status_url(url: str) -> dict[str, str]:
-    """Extract API parameters from the sniffed status request URL."""
-    parsed = urlparse(url.strip())
-    # path: /api/2/rvs/vehicle/{vehicle_id}/status
-    parts = [p for p in parsed.path.split("/") if p]
-    try:
-        vehicle_id = parts[parts.index("vehicle") + 1]
-    except (ValueError, IndexError) as err:
-        raise ValueError("vehicle_id not found in URL path") from err
 
-    qs = parse_qs(parsed.query)
-
-    def q(key: str, default: str | None = None) -> str:
-        if key in qs and qs[key]:
-            return qs[key][0]
-        if default is not None:
-            return default
-        raise ValueError(f"query parameter '{key}' missing from URL")
-
-    return {
-        CONF_VEHICLE_ID: vehicle_id,
-        CONF_DEVICE_ID: q("device_id"),
-        CONF_SIGN: q("sign"),
-        CONF_TIMESTAMP: q("timestamp"),
-        CONF_APP_VER: q("app_ver", DEFAULT_APP_VER),
-        CONF_REGION: q("region", DEFAULT_REGION),
-    }
+def _clean(value: str) -> str:
+    """Trim and drop a stray ``Bearer `` prefix users paste with the token."""
+    return value.removeprefix("Bearer ").strip()
 
 
 async def _async_validate(hass: HomeAssistant, data: dict[str, Any]) -> str | None:
@@ -102,8 +86,8 @@ async def _async_validate(hass: HomeAssistant, data: dict[str, Any]) -> str | No
         device_id=data[CONF_DEVICE_ID],
         sign=data[CONF_SIGN],
         timestamp=data[CONF_TIMESTAMP],
-        app_ver=data[CONF_APP_VER],
-        region=data[CONF_REGION],
+        app_ver=data.get(CONF_APP_VER, DEFAULT_APP_VER),
+        region=data.get(CONF_REGION, DEFAULT_REGION),
     )
     try:
         await client.async_get_status()
@@ -114,21 +98,28 @@ async def _async_validate(hass: HomeAssistant, data: dict[str, Any]) -> str | No
     return None
 
 
-def _apply_credentials(
-    base: dict[str, Any], user_input: dict[str, Any]
-) -> tuple[dict[str, Any], str | None]:
-    """Merge a token (+ optional re-pasted URL) into a copy of ``base``.
-
-    Returns (new_data, error_key). error_key is set only on a bad URL.
-    """
+def _apply_credentials(base: dict[str, Any], user_input: dict[str, Any]) -> dict[str, Any]:
+    """Merge a fresh token (+ any changed id fields) into a copy of ``base``."""
     data = {**base}
-    if url := user_input.get(CONF_STATUS_URL):
-        try:
-            data.update(_parse_status_url(url))
-        except ValueError:
-            return data, "invalid_url"
-    data[CONF_TOKEN] = user_input[CONF_TOKEN].removeprefix("Bearer ").strip()
-    return data, None
+    for key in ID_FIELDS:
+        if (value := user_input.get(key)) is not None and str(value).strip():
+            data[key] = str(value).strip()
+    data[CONF_TOKEN] = _clean(user_input[CONF_TOKEN])
+    return data
+
+
+def _credentials_schema(entry: ConfigEntry) -> vol.Schema:
+    """Token (required, re-sniffed) + the id fields prefilled for easy editing."""
+    d = entry.data
+    return vol.Schema(
+        {
+            vol.Required(CONF_TOKEN): str,
+            vol.Optional(CONF_VEHICLE_ID, default=d.get(CONF_VEHICLE_ID, "")): str,
+            vol.Optional(CONF_DEVICE_ID, default=d.get(CONF_DEVICE_ID, "")): str,
+            vol.Optional(CONF_SIGN, default=d.get(CONF_SIGN, "")): str,
+            vol.Optional(CONF_TIMESTAMP, default=d.get(CONF_TIMESTAMP, "")): str,
+        }
+    )
 
 
 class NioConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -141,32 +132,28 @@ class NioConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            try:
-                parsed = _parse_status_url(user_input[CONF_STATUS_URL])
-            except ValueError:
-                errors["base"] = "invalid_url"
-            else:
-                data = {
-                    **parsed,
-                    CONF_TOKEN: user_input[CONF_TOKEN].removeprefix("Bearer ").strip(),
-                    CONF_MODEL: user_input.get(CONF_MODEL, DEFAULT_MODEL),
-                }
-                await self.async_set_unique_id(parsed[CONF_VEHICLE_ID])
-                self._abort_if_unique_id_configured()
-                if (error := await _async_validate(self.hass, data)) is None:
-                    return self.async_create_entry(
-                        title=f"NIO {data[CONF_MODEL]}", data=data
-                    )
-                errors["base"] = error
+            data = {
+                CONF_VEHICLE_ID: user_input[CONF_VEHICLE_ID].strip(),
+                CONF_DEVICE_ID: user_input[CONF_DEVICE_ID].strip(),
+                CONF_SIGN: user_input[CONF_SIGN].strip(),
+                CONF_TIMESTAMP: user_input[CONF_TIMESTAMP].strip(),
+                CONF_TOKEN: _clean(user_input[CONF_TOKEN]),
+                CONF_APP_VER: DEFAULT_APP_VER,
+                CONF_REGION: DEFAULT_REGION,
+                CONF_MODEL: user_input.get(CONF_MODEL, DEFAULT_MODEL),
+            }
+            await self.async_set_unique_id(data[CONF_VEHICLE_ID])
+            self._abort_if_unique_id_configured()
+            if (error := await _async_validate(self.hass, data)) is None:
+                return self.async_create_entry(title=f"NIO {data[CONF_MODEL]}", data=data)
+            errors["base"] = error
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_SCHEMA, errors=errors
         )
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> ConfigFlowResult:
-        """Token expired — ask for a fresh one (URL re-paste optional)."""
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+        """Token expired — ask for a fresh one (ids re-enterable if they changed)."""
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -175,22 +162,14 @@ class NioConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         entry = self._get_reauth_entry()
         if user_input is not None:
-            data, errors_key = _apply_credentials(entry.data, user_input)
-            if errors_key:
-                errors["base"] = errors_key
-            elif (error := await _async_validate(self.hass, data)) is None:
+            data = _apply_credentials(entry.data, user_input)
+            if (error := await _async_validate(self.hass, data)) is None:
                 return self.async_update_reload_and_abort(entry, data=data)
-            else:
-                errors["base"] = error
+            errors["base"] = error
 
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_TOKEN): str,
-                    vol.Optional(CONF_STATUS_URL): str,
-                }
-            ),
+            data_schema=_credentials_schema(entry),
             errors=errors,
         )
 
@@ -265,24 +244,16 @@ class NioOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         entry = self.config_entry
         if user_input is not None:
-            data, errors_key = _apply_credentials(entry.data, user_input)
-            if errors_key:
-                errors["base"] = errors_key
-            elif (error := await _async_validate(self.hass, data)) is None:
+            data = _apply_credentials(entry.data, user_input)
+            if (error := await _async_validate(self.hass, data)) is None:
                 # Persist the new credentials; the entry's update listener
                 # (registered in __init__) reloads the integration to apply them.
                 self.hass.config_entries.async_update_entry(entry, data=data)
                 return self.async_create_entry(data=dict(entry.options))
-            else:
-                errors["base"] = error
+            errors["base"] = error
 
         return self.async_show_form(
             step_id="credentials",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_TOKEN): str,
-                    vol.Optional(CONF_STATUS_URL): str,
-                }
-            ),
+            data_schema=_credentials_schema(entry),
             errors=errors,
         )
