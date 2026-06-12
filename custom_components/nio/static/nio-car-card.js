@@ -265,8 +265,9 @@ class NioCarCard extends HTMLElement {
                        padding: 14px 18px 4px; font-size: 18px; font-weight: 500; }
         .nio-cc-head ha-icon { cursor: pointer; color: var(--secondary-text-color); }
         .nio-cc-body { padding: 6px 18px; }
-        .nio-cc-body h3 { font-size: 13px; font-weight: 500; margin: 10px 0 2px;
-                          color: var(--secondary-text-color); }
+        .nio-cc-body h3 { font-size: 17px; font-weight: 600; margin: 18px 0 6px;
+                          color: var(--primary-text-color); }
+        .nio-cc-body h3:first-child { margin-top: 6px; }
         .nio-cc-row { display: flex; justify-content: space-between; padding: 7px 0;
                       cursor: pointer; font-size: 14px; }
         .nio-cc-row .val { color: var(--secondary-text-color); }
