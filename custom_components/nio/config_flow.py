@@ -25,6 +25,9 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 
 from .api import NioApiClient, NioApiError, NioAuthError
@@ -55,15 +58,22 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# The five values sniffed from one app status request. sign+timestamp are a
-# pair (the signature is computed over the timestamp), so both are required.
+
+def _secret() -> TextSelector:
+    """A masked text box with a reveal (eye) toggle — for the credential values."""
+    return TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
+
+
+# The five values sniffed from one app status request — all required (sign and
+# timestamp are a pair: the signature is computed over the timestamp). Each is
+# masked like a password; the model field is a plain optional label.
 STEP_USER_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_VEHICLE_ID): str,
-        vol.Required(CONF_DEVICE_ID): str,
-        vol.Required(CONF_SIGN): str,
-        vol.Required(CONF_TIMESTAMP): str,
-        vol.Required(CONF_TOKEN): str,
+        vol.Required(CONF_VEHICLE_ID): _secret(),
+        vol.Required(CONF_DEVICE_ID): _secret(),
+        vol.Required(CONF_SIGN): _secret(),
+        vol.Required(CONF_TIMESTAMP): _secret(),
+        vol.Required(CONF_TOKEN): _secret(),
         vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
     }
 )
@@ -109,15 +119,15 @@ def _apply_credentials(base: dict[str, Any], user_input: dict[str, Any]) -> dict
 
 
 def _credentials_schema(entry: ConfigEntry) -> vol.Schema:
-    """Token (required, re-sniffed) + the id fields prefilled for easy editing."""
+    """All credential fields, masked and prefilled with the current values."""
     d = entry.data
     return vol.Schema(
         {
-            vol.Required(CONF_TOKEN): str,
-            vol.Optional(CONF_VEHICLE_ID, default=d.get(CONF_VEHICLE_ID, "")): str,
-            vol.Optional(CONF_DEVICE_ID, default=d.get(CONF_DEVICE_ID, "")): str,
-            vol.Optional(CONF_SIGN, default=d.get(CONF_SIGN, "")): str,
-            vol.Optional(CONF_TIMESTAMP, default=d.get(CONF_TIMESTAMP, "")): str,
+            vol.Required(CONF_TOKEN, default=d.get(CONF_TOKEN, "")): _secret(),
+            vol.Required(CONF_VEHICLE_ID, default=d.get(CONF_VEHICLE_ID, "")): _secret(),
+            vol.Required(CONF_DEVICE_ID, default=d.get(CONF_DEVICE_ID, "")): _secret(),
+            vol.Required(CONF_SIGN, default=d.get(CONF_SIGN, "")): _secret(),
+            vol.Required(CONF_TIMESTAMP, default=d.get(CONF_TIMESTAMP, "")): _secret(),
         }
     )
 

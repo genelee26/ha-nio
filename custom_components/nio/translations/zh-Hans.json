@@ -15,7 +15,7 @@
       },
       "reauth_confirm": {
         "title": "重新认证 NIO",
-        "description": "NIO token 已失效。重新嗅探一个新 token 填入下面。其它值已预填——只有在某项也轮换了才改它（改 sign 时要连 timestamp 一起换）。",
+        "description": "粘贴新的抓包数据填入下列各项。",
         "data": {
           "token": "Bearer token（Authorization 头）",
           "vehicle_id": "vehicle_id",
@@ -56,7 +56,7 @@
       },
       "credentials": {
         "title": "更新认证",
-        "description": "填入新的 Bearer token（从 NIO App 重新嗅探）。其它值已预填——只有在某项也轮换了才改它（改 sign 时要连 timestamp 一起换）。",
+        "description": "粘贴新的抓包数据填入下列各项。",
         "data": {
           "token": "Bearer token（Authorization 头）",
           "vehicle_id": "vehicle_id",
