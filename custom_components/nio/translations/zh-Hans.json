@@ -3,30 +3,26 @@
     "step": {
       "user": {
         "title": "连接你的蔚来汽车",
-        "description": "用抓包工具（MITM proxy）嗅探 NIO App 的一次车辆状态请求（icar.nio.com/api/2/rvs/vehicle/.../status），把各项值逐个填入下面。vehicle_id 在 URL 路径里；device_id、sign、timestamp 是查询参数；token 是 Authorization Bearer 请求头。sign 和 timestamp 必须取自同一次请求。",
+        "description": "用抓包工具（MITM proxy）嗅探 NIO App 的一次车辆状态请求（icar.nio.com/api/2/rvs/vehicle/.../status），把整条请求 URL 原样粘贴到下面，再填上它的 Authorization Bearer token。URL 会被原样重放，请勿改动——服务端签名覆盖了整条查询串。",
         "data": {
-          "vehicle_id": "vehicle_id（URL 路径）",
-          "device_id": "device_id",
-          "sign": "sign",
-          "timestamp": "timestamp",
+          "capture": "抓到的状态请求 URL（整条 .../status?... ）",
           "token": "Bearer token（Authorization 头）",
           "model": "车型"
         }
       },
       "reauth_confirm": {
         "title": "重新认证 NIO",
-        "description": "粘贴新的抓包数据填入下列各项。",
+        "description": "粘贴新的 Bearer token。若是签名被拒（例如 NIO App 升级了），再粘贴一条新抓的状态请求 URL 来刷新。",
         "data": {
           "token": "Bearer token（Authorization 头）",
-          "vehicle_id": "vehicle_id",
-          "device_id": "device_id",
-          "sign": "sign",
-          "timestamp": "timestamp"
+          "capture": "抓到的状态请求 URL（可选——仅在重新抓包时填）"
         }
       }
     },
     "error": {
-      "invalid_auth": "NIO API 拒绝了该 token。",
+      "invalid_auth": "NIO API 拒绝了该 token。请重新抓一个新的 Bearer token。",
+      "invalid_sign": "NIO API 拒绝的是签名、不是 token——抓的请求已和服务端对不上（多半是 App 升级了）。请重新抓一次当前的状态请求，把整条 URL 粘进来。",
+      "invalid_url": "无法识别为状态请求。请把包含 /vehicle/<id>/status?...&sign=... 的整行粘进来。",
       "cannot_connect": "无法连接 NIO API。"
     },
     "abort": {
@@ -56,18 +52,17 @@
       },
       "credentials": {
         "title": "更新认证",
-        "description": "粘贴新的抓包数据填入下列各项。",
+        "description": "粘贴新的 Bearer token。若想顺便刷新抓包请求（例如 NIO App 升级后），再粘贴一条新抓的状态请求 URL。",
         "data": {
           "token": "Bearer token（Authorization 头）",
-          "vehicle_id": "vehicle_id",
-          "device_id": "device_id",
-          "sign": "sign",
-          "timestamp": "timestamp"
+          "capture": "抓到的状态请求 URL（可选——仅在重新抓包时填）"
         }
       }
     },
     "error": {
-      "invalid_auth": "NIO API 拒绝了该 token。",
+      "invalid_auth": "NIO API 拒绝了该 token。请重新抓一个新的 Bearer token。",
+      "invalid_sign": "NIO API 拒绝的是签名、不是 token——抓的请求已和服务端对不上（多半是 App 升级了）。请重新抓一次当前的状态请求，把整条 URL 粘进来。",
+      "invalid_url": "无法识别为状态请求。请把包含 /vehicle/<id>/status?...&sign=... 的整行粘进来。",
       "cannot_connect": "无法连接 NIO API。"
     }
   },

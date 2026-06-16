@@ -81,22 +81,29 @@ restart.
 The integration authenticates by replaying the app's own request, so you need
 to sniff it once:
 
-1. Put an MITM proxy (mitmproxy / Charles / Surge / Quantumult X…) between your
-   phone and the internet, trust its CA certificate.
+1. Put an MITM proxy (mitmproxy / Reqable / Charles / Surge / Quantumult X…)
+   between your phone and the internet, trust its CA certificate.
 2. Open the NIO app, pull-to-refresh the vehicle page.
 3. Find the request to
    `https://icar.nio.com/api/2/rvs/vehicle/<vehicle_id>/status?...`
-4. Read off five values from that one request:
-   - `vehicle_id` — in the URL path (`/vehicle/<vehicle_id>/status`)
-   - `device_id`, `sign`, `timestamp` — query-string parameters
+4. Grab two things:
+   - the **whole request URL** (from `https://…/status?` through the trailing
+     `…&sign=…` — copy all of it)
    - the token — the `Authorization: Bearer …` request **header**
-5. In HA: *Settings → Devices & services → Add integration → NIO*, enter each
-   value in its own field.
+5. In HA: *Settings → Devices & services → Add integration → NIO*, paste the
+   whole URL into the "Captured status request URL" box and the token into the
+   token box.
 
-`sign` and `timestamp` must come from the **same** request — the signature is
-computed over the timestamp, so they are stored and replayed as a pair. Values
-are kept in HA's encrypted config storage (no plaintext YAML); `app_ver` and
-`region` use bundled defaults.
+> [!IMPORTANT]
+> **Don't edit that URL.** The server's `sign` covers the entire query string
+> (field list + order, `app_ver`, `device_id`, `timestamp`…), and those drift
+> across app versions (6.6.0 added `field=key`; `app_ver` differs per user). The
+> integration replays your captured URL **byte-for-byte**, so don't reconstruct
+> it field-by-field — that was exactly why old versions (≤0.2.x) reported
+> "token rejected" after every app update (it was a *signature* mismatch
+> mislabelled as an auth failure). The captured `sign` isn't freshness-checked,
+> so one capture lasts a long time. URL and token are kept in HA's encrypted
+> config storage (no plaintext YAML).
 
 > [!WARNING]
 > The Bearer token is your NIO account session credential — treat it like a
@@ -104,8 +111,14 @@ are kept in HA's encrypted config storage (no plaintext YAML); `app_ver` and
 > the token itself would allow remote vehicle control elsewhere.
 
 When the token eventually expires, HA raises a re-authentication notification —
-sniff a fresh token and enter it (the other values are prefilled). No restart
-needed.
+sniff a fresh token and enter it. No restart needed. If the prompt says the
+**signature** was rejected (usually after an app update), also paste a freshly
+captured URL to refresh it.
+
+> [!NOTE]
+> Existing users upgrading from ≤0.2.x **don't need to re-sniff**: the upgrade
+> auto-migrates the old per-field data into the equivalent verbatim query
+> (v1→v2 migration), and the sign that already worked keeps working.
 
 ## Notes
 

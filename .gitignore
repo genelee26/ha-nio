@@ -4,3 +4,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.secret
+
+# Local capture credentials (token / sign / device_id) — never commit
+secrets.txt
+secrets.*
+*.secrets

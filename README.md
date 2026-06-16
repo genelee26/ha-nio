@@ -72,27 +72,34 @@
 
 集成通过「重放 App 自己的请求」来认证，所以需要抓一次包：
 
-1. 在手机和网络之间架一个 MITM 代理（mitmproxy / Charles / Surge / Quantumult X…），
+1. 在手机和网络之间架一个 MITM 代理（mitmproxy / Reqable / Charles / Surge / Quantumult X…），
    信任它的 CA 证书。
 2. 打开蔚来 App，下拉刷新车辆页。
 3. 找到这条请求：
    `https://icar.nio.com/api/2/rvs/vehicle/<vehicle_id>/status?...`
-4. 从这**同一次**请求里读出 5 个值：
-   - `vehicle_id` —— 在 URL 路径里（`/vehicle/<vehicle_id>/status`）
-   - `device_id`、`sign`、`timestamp` —— 查询参数
+4. 取两样东西：
+   - **整条请求 URL**（从 `https://…/status?` 一直到末尾的 `…&sign=…`，复制全部）
    - token —— `Authorization: Bearer …` 请求**头**
-5. 在 HA：*设置 → 设备与服务 → 添加集成 → NIO*，把每个值逐项填进各自的输入框。
+5. 在 HA：*设置 → 设备与服务 → 添加集成 → NIO*，把整条 URL 粘进「抓到的状态请求 URL」框、
+   token 粘进 token 框即可。
 
-`sign` 和 `timestamp` 必须取自**同一次**请求——签名是连 timestamp 一起算的，所以两者
-作为一对存储并原样重放。这些值存在 HA 的加密配置存储里（没有明文 YAML）；`app_ver`
-和 `region` 用内置默认值。
+> [!IMPORTANT]
+> **请勿改动那条 URL**。服务端的 `sign` 覆盖了整条查询串（字段列表+顺序、`app_ver`、
+> `device_id`、`timestamp` 全在内），且这些会随 App 版本漂移（如 6.6.0 新增了 `field=key`、
+> `app_ver` 也因人而异）。集成把你抓到的 URL **逐字节原样重放**，所以不要逐字段重拼——
+> 那正是旧版本（≤0.2.x）一遇 App 升级就报「token 被拒」的根因（其实是签名不匹配被误报）。
+> 抓到的 `sign` 不校验新鲜度，一次抓取可长期使用。URL 与 token 存在 HA 的加密配置存储里（无明文 YAML）。
 
 > [!WARNING]
 > Bearer token 是你蔚来账号的会话凭证——当密码看待。这个集成是**只读**的（从不发
 > 控制指令），但 token 本身在别处足以远程控制车辆。
 
-token 早晚会过期，到时 HA 会弹出「重新认证」通知——重新抓一个新 token 填进去即可
-（其它值已预填），不用重启。
+token 早晚会过期，到时 HA 会弹出「重新认证」通知——重新抓一个新 token 填进去即可，
+不用重启。若提示是**签名被拒**（多半因 App 升级），顺手再粘一条新抓的 URL 刷新即可。
+
+> [!NOTE]
+> 从 ≤0.2.x 升级上来的现有用户**无需重新抓包**：升级时会自动把旧的逐字段数据迁移成
+> 等价的整条查询串（v1→v2 迁移），原本能用的签名继续有效。
 
 ## 注意事项
 

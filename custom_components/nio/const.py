@@ -8,15 +8,21 @@ DOMAIN = "nio"
 STATIC_URL_BASE = "/nio_static"
 ENTITY_PICTURE = f"{STATIC_URL_BASE}/nio_logo.png"
 
-# --- Config entry data keys (parsed from the sniffed app request) ---
+# --- Config entry data keys (v2: the whole sniffed request, replayed verbatim) ---
 CONF_TOKEN = "token"
 CONF_VEHICLE_ID = "vehicle_id"
+# The verbatim status-request query string (everything after the URL's '?').
+# Replayed byte-for-byte because the server's sign covers the entire param set
+# (field list + order, app_ver, device_id, timestamp, …) — see capture.py.
+CONF_QUERY = "query"
+CONF_MODEL = "model"
+
+# --- Legacy v1 data keys (per-field). Read only by the migration in __init__. ---
 CONF_DEVICE_ID = "device_id"
 CONF_SIGN = "sign"
 CONF_TIMESTAMP = "timestamp"
 CONF_APP_VER = "app_ver"
 CONF_REGION = "region"
-CONF_MODEL = "model"
 
 DEFAULT_APP_VER = "6.3.0"
 DEFAULT_REGION = "cn"
@@ -45,7 +51,10 @@ USER_AGENT = (
     "Alamofire/5.9.1"
 )
 
-# All fields fetched in a single round trip (matches the app's own request).
+# NOTE: requests are no longer *built* from these — v2 replays the captured
+# query verbatim (see capture.py / api.py). API_FIELDS + API_APP_ID survive only
+# so the v1→v2 migration can reconstruct the exact query the old client sent
+# (which the old, matching sign still validates). Order is load-bearing there.
 API_FIELDS = [
     "heating",
     "fota",

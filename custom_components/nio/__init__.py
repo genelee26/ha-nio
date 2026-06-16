@@ -12,16 +12,13 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_integration
 
 from .api import NioApiClient
+from .capture import reconstruct_query_v1
 from .const import (
-    CONF_APP_VER,
-    CONF_DEVICE_ID,
-    CONF_REGION,
-    CONF_SIGN,
-    CONF_TIMESTAMP,
+    CONF_MODEL,
+    CONF_QUERY,
     CONF_TOKEN,
     CONF_VEHICLE_ID,
-    DEFAULT_APP_VER,
-    DEFAULT_REGION,
+    DEFAULT_MODEL,
     DOMAIN,
     STATIC_URL_BASE,
 )
@@ -58,11 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
         async_get_clientsession(hass),
         token=entry.data[CONF_TOKEN],
         vehicle_id=entry.data[CONF_VEHICLE_ID],
-        device_id=entry.data[CONF_DEVICE_ID],
-        sign=entry.data[CONF_SIGN],
-        timestamp=entry.data[CONF_TIMESTAMP],
-        app_ver=entry.data.get(CONF_APP_VER, DEFAULT_APP_VER),
-        region=entry.data.get(CONF_REGION, DEFAULT_REGION),
+        query=entry.data[CONF_QUERY],
     )
     coordinator = NioDataUpdateCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
@@ -70,6 +63,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
+    """Migrate v1 (per-field) entries to v2 (verbatim query).
+
+    v1 stored device_id/sign/timestamp/app_ver/region separately and the client
+    rebuilt the query from them. v2 stores the query string itself. We rebuild
+    the *exact* string the v1 client used to send, so an existing, still-valid
+    sign keeps validating — the upgrade is seamless and requires no re-sniff.
+    """
+    if entry.version == 1:
+        old = entry.data
+        new = {
+            CONF_TOKEN: old[CONF_TOKEN],
+            CONF_VEHICLE_ID: old[CONF_VEHICLE_ID],
+            CONF_QUERY: reconstruct_query_v1(old),
+            CONF_MODEL: old.get(CONF_MODEL, DEFAULT_MODEL),
+        }
+        hass.config_entries.async_update_entry(entry, data=new, version=2)
     return True
 
 

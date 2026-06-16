@@ -17,7 +17,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .api import NioApiClient, NioApiError, NioAuthError
+from .api import NioApiClient, NioApiError, NioAuthError, NioSignError
 from .const import (
     DEFAULT_DAY_END,
     DEFAULT_DAY_START,
@@ -65,6 +65,14 @@ class NioDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         try:
             data = await self.client.async_get_status()
+        except NioSignError as err:
+            # Not a token problem — the captured request stopped matching (app
+            # likely updated). Surface a reauth so the user re-pastes a fresh
+            # capture rather than chasing a phantom "token rejected".
+            raise ConfigEntryAuthFailed(
+                "NIO signature rejected — re-sniff a current status request "
+                "(the app's app_ver/fields may have changed)"
+            ) from err
         except NioAuthError as err:
             raise ConfigEntryAuthFailed(
                 "NIO token rejected — re-sniff a fresh token from the app"

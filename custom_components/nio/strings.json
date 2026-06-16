@@ -3,30 +3,26 @@
     "step": {
       "user": {
         "title": "Connect your NIO vehicle",
-        "description": "Sniff one vehicle-status request from the NIO app (MITM proxy: icar.nio.com/api/2/rvs/vehicle/.../status) and enter its values below. vehicle_id is in the URL path; device_id, sign and timestamp are query parameters; the token is the Authorization Bearer header. sign and timestamp must come from the same request.",
+        "description": "Sniff one vehicle-status request from the NIO app (MITM proxy: icar.nio.com/api/2/rvs/vehicle/.../status) and paste the whole request URL below, plus its Authorization Bearer token. The URL is replayed exactly as captured — don't edit it; the server's signature covers the entire query.",
         "data": {
-          "vehicle_id": "vehicle_id (URL path)",
-          "device_id": "device_id",
-          "sign": "sign",
-          "timestamp": "timestamp",
+          "capture": "Captured status request URL (the whole .../status?... line)",
           "token": "Bearer token (Authorization header)",
           "model": "Vehicle model"
         }
       },
       "reauth_confirm": {
         "title": "Re-authenticate NIO",
-        "description": "Paste the newly sniffed values into the fields below.",
+        "description": "Paste a fresh Bearer token. If the signature was rejected (e.g. the NIO app updated), also paste a newly captured status request URL to refresh it.",
         "data": {
           "token": "Bearer token (Authorization header)",
-          "vehicle_id": "vehicle_id",
-          "device_id": "device_id",
-          "sign": "sign",
-          "timestamp": "timestamp"
+          "capture": "Captured status request URL (optional — only if re-sniffed)"
         }
       }
     },
     "error": {
-      "invalid_auth": "The NIO API rejected the token.",
+      "invalid_auth": "The NIO API rejected the token. Re-sniff a fresh Bearer token.",
+      "invalid_sign": "The NIO API rejected the signature, not the token — the captured request no longer matches (the app likely updated). Re-sniff a current status request and paste the whole URL.",
+      "invalid_url": "Couldn't parse that as a status request. Paste the whole line containing /vehicle/<id>/status?...&sign=...",
       "cannot_connect": "Could not reach the NIO API."
     },
     "abort": {
@@ -56,18 +52,17 @@
       },
       "credentials": {
         "title": "Update credentials",
-        "description": "Paste the newly sniffed values into the fields below.",
+        "description": "Paste a fresh Bearer token. To refresh the captured request too (e.g. after a NIO app update), also paste a newly captured status request URL.",
         "data": {
           "token": "Bearer token (Authorization header)",
-          "vehicle_id": "vehicle_id",
-          "device_id": "device_id",
-          "sign": "sign",
-          "timestamp": "timestamp"
+          "capture": "Captured status request URL (optional — only if re-sniffed)"
         }
       }
     },
     "error": {
-      "invalid_auth": "The NIO API rejected the token.",
+      "invalid_auth": "The NIO API rejected the token. Re-sniff a fresh Bearer token.",
+      "invalid_sign": "The NIO API rejected the signature, not the token — the captured request no longer matches (the app likely updated). Re-sniff a current status request and paste the whole URL.",
+      "invalid_url": "Couldn't parse that as a status request. Paste the whole line containing /vehicle/<id>/status?...&sign=...",
       "cannot_connect": "Could not reach the NIO API."
     }
   },
