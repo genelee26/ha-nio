@@ -15,7 +15,13 @@ async def async_setup_entry(
     entry: NioConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    async_add_entities([NioRefreshButton(entry.runtime_data)])
+    runtime = entry.runtime_data
+    async_add_entities(
+        [
+            NioRefreshButton(runtime.status),
+            NioOrdersRefreshButton(runtime.orders),
+        ]
+    )
 
 
 class NioRefreshButton(NioEntity, ButtonEntity):
@@ -26,6 +32,21 @@ class NioRefreshButton(NioEntity, ButtonEntity):
 
     def __init__(self, coordinator: NioDataUpdateCoordinator) -> None:
         super().__init__(coordinator, "refresh")
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_request_refresh()
+
+
+class NioOrdersRefreshButton(NioEntity, ButtonEntity):
+    """Trigger an immediate refresh of the service-order ledger."""
+
+    _attr_translation_key = "refresh_orders"
+    _attr_icon = "mdi:receipt-text-clock-outline"
+
+    def __init__(self, coordinator) -> None:
+        # Reuses NioEntity (it only needs the coordinator's config_entry + data);
+        # ties this button to the same vehicle device as the status entities.
+        super().__init__(coordinator, "refresh_orders")
 
     async def async_press(self) -> None:
         await self.coordinator.async_request_refresh()

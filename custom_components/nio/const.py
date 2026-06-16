@@ -165,3 +165,9 @@ ORDERS_QUERY_STATIC = {
     "pagination_method": "2",
 }
 ORDERS_ORDER_TYPES_PARAM = ",".join(ORDER_TYPES)  # all 8 kinds, comma-joined
+
+# Orders coordinator cadence + one-time backfill throttle.
+OPT_INTERVAL_ORDERS = "interval_orders_hours"
+DEFAULT_INTERVAL_ORDERS = 12  # steady-state refresh of the recent window (hours)
+BACKFILL_PAGE_GAP = 600  # seconds between backfill pages — gentle on the API
+ORDERS_STORAGE_VERSION = 1

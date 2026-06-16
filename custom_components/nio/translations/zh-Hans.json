@@ -104,7 +104,8 @@
       "location": { "name": "位置" }
     },
     "button": {
-      "refresh": { "name": "数据刷新" }
+      "refresh": { "name": "数据刷新" },
+      "refresh_orders": { "name": "刷新服务订单" }
     }
   }
 }

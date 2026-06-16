@@ -23,7 +23,7 @@ async def async_setup_entry(
     entry: NioConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    async_add_entities([NioDeviceTracker(entry.runtime_data)])
+    async_add_entities([NioDeviceTracker(entry.runtime_data.status)])
 
 
 class NioDeviceTracker(NioEntity, TrackerEntity):

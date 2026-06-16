@@ -104,7 +104,8 @@
       "location": { "name": "Location" }
     },
     "button": {
-      "refresh": { "name": "Refresh data" }
+      "refresh": { "name": "Refresh data" },
+      "refresh_orders": { "name": "Refresh service orders" }
     }
   }
 }

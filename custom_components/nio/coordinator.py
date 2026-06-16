@@ -8,8 +8,9 @@ even invalidate the token) if hammered, so the cadence is deliberately gentle.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -33,9 +34,12 @@ from .const import (
     VEHICLE_STATE_DRIVING,
 )
 
+if TYPE_CHECKING:
+    from .orders_coordinator import NioOrdersCoordinator
+
 _LOGGER = logging.getLogger(__name__)
 
-type NioConfigEntry = ConfigEntry[NioDataUpdateCoordinator]
+type NioConfigEntry = ConfigEntry[NioRuntimeData]
 
 
 class NioDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -98,3 +102,15 @@ class NioDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else:
                 minutes = self._opt(entry, OPT_INTERVAL_NIGHT, DEFAULT_INTERVAL_NIGHT)
         return timedelta(minutes=minutes)
+
+
+@dataclass
+class NioRuntimeData:
+    """The per-vehicle coordinators stored on the config entry.
+
+    ``status`` is the fast adaptive vehicle-status poller; ``orders`` is the slow
+    service-order (billing) coordinator with its own ledger and backfill.
+    """
+
+    status: NioDataUpdateCoordinator
+    orders: NioOrdersCoordinator
