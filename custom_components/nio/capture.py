@@ -50,7 +50,11 @@ def parse_capture(raw: str) -> tuple[str, str]:
     if "?" not in text:
         raise ValueError("no query string (nothing after '?')")
     query = text.split("?", 1)[1]
-    query = query.split("#", 1)[0].strip()  # drop any trailing fragment
+    # A URL query never contains raw whitespace or a fragment, so cut at the
+    # first of those. This tolerates pasting a whole proxy "request line"
+    # (e.g. "GET https://…/status?…&sign=x HTTP/2") or a URL followed by header
+    # lines — keep just the query and drop the trailing junk.
+    query = re.split(r"[\s#]", query, maxsplit=1)[0].strip()
 
     if not query:
         raise ValueError("empty query string")

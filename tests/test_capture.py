@@ -49,6 +49,26 @@ def test_parse_drops_fragment():
     print("  fragment dropped ✓")
 
 
+def test_parse_request_line_and_multiline():
+    # Whole proxy "request line": method + URL + protocol on one line.
+    vid, query = capture.parse_capture(
+        "GET https://icar.nio.com/api/2/rvs/vehicle/V1/status?timestamp=1&sign=x HTTP/2"
+    )
+    assert vid == "V1", vid
+    assert query == "timestamp=1&sign=x", query  # " HTTP/2" trimmed off
+
+    # URL followed by header lines (pasted blob) — keep only the query.
+    blob = (
+        "/api/2/rvs/vehicle/V2/status?field=soc&timestamp=2&sign=y\n"
+        "Host: tsp.nio.com\n"
+        "Authorization: Bearer abc\n"
+    )
+    vid, query = capture.parse_capture(blob)
+    assert vid == "V2", vid
+    assert query == "field=soc&timestamp=2&sign=y", query  # newline + headers trimmed
+    print("  request-line + multiline blob trimmed to query ✓")
+
+
 def test_parse_rejects_bad_input():
     bad = [
         "",
@@ -124,6 +144,7 @@ if __name__ == "__main__":
         test_parse_full_url,
         test_parse_path_only_and_quotes,
         test_parse_drops_fragment,
+        test_parse_request_line_and_multiline,
         test_parse_rejects_bad_input,
         test_app_ver_from_query,
         test_reconstruct_query_v1_matches_old_client,

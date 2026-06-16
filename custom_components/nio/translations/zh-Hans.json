@@ -22,7 +22,7 @@
     "error": {
       "invalid_auth": "NIO API 拒绝了该 token。请重新抓一个新的 Bearer token。",
       "invalid_sign": "NIO API 拒绝的是签名、不是 token——抓的请求已和服务端对不上（多半是 App 升级了）。请重新抓一次当前的状态请求，把整条 URL 粘进来。",
-      "invalid_url": "无法识别为状态请求。请把包含 /vehicle/<id>/status?...&sign=... 的整行粘进来。",
+      "invalid_url": "无法识别为状态请求。请把包含 /vehicle/.../status?...&sign=... 的整行粘进来。",
       "cannot_connect": "无法连接 NIO API。"
     },
     "abort": {
@@ -62,7 +62,7 @@
     "error": {
       "invalid_auth": "NIO API 拒绝了该 token。请重新抓一个新的 Bearer token。",
       "invalid_sign": "NIO API 拒绝的是签名、不是 token——抓的请求已和服务端对不上（多半是 App 升级了）。请重新抓一次当前的状态请求，把整条 URL 粘进来。",
-      "invalid_url": "无法识别为状态请求。请把包含 /vehicle/<id>/status?...&sign=... 的整行粘进来。",
+      "invalid_url": "无法识别为状态请求。请把包含 /vehicle/.../status?...&sign=... 的整行粘进来。",
       "cannot_connect": "无法连接 NIO API。"
     }
   },

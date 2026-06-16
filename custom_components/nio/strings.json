@@ -22,7 +22,7 @@
     "error": {
       "invalid_auth": "The NIO API rejected the token. Re-sniff a fresh Bearer token.",
       "invalid_sign": "The NIO API rejected the signature, not the token — the captured request no longer matches (the app likely updated). Re-sniff a current status request and paste the whole URL.",
-      "invalid_url": "Couldn't parse that as a status request. Paste the whole line containing /vehicle/<id>/status?...&sign=...",
+      "invalid_url": "Couldn't parse that as a status request. Paste the whole line containing /vehicle/.../status?...&sign=...",
       "cannot_connect": "Could not reach the NIO API."
     },
     "abort": {
@@ -62,7 +62,7 @@
     "error": {
       "invalid_auth": "The NIO API rejected the token. Re-sniff a fresh Bearer token.",
       "invalid_sign": "The NIO API rejected the signature, not the token — the captured request no longer matches (the app likely updated). Re-sniff a current status request and paste the whole URL.",
-      "invalid_url": "Couldn't parse that as a status request. Paste the whole line containing /vehicle/<id>/status?...&sign=...",
+      "invalid_url": "Couldn't parse that as a status request. Paste the whole line containing /vehicle/.../status?...&sign=...",
       "cannot_connect": "Could not reach the NIO API."
     }
   },
