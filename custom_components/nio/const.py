@@ -112,3 +112,56 @@ WINDOW_POSN_FIELDS = [
     "win_rear_left_posn",
     "win_rear_right_posn",
 ]
+
+# --- Service-order / billing API (gateway-front-external; shares the account
+# token). Unlike the status API this gateway does NOT verify a sign — it only
+# enforces timestamp freshness, which the NIO User-Agent bypasses. Read-only. ---
+ORDERS_API_URL = (
+    "https://gateway-front-external.nio.com/moat/1100367/api/v1/otd/car/ext"
+    "/general/serviceOrder/getTabOrder"
+)
+ORDERS_USER_AGENT = "NextevCar/6.3.0 (com.do1.WeiLaiApp; build:2586; iOS 26.2.1)"
+ORDERS_PAGE_SIZE = 50  # initial backfill: 50/page, paginate until hasMore=false
+ORDERS_RECENT_LIMIT = 10  # steady state: re-fetch the most recent 10 and upsert
+
+# orderType → display name (the 8 service-order kinds; comma-joined, no spaces).
+ORDER_TYPES = {
+    "pe_shaman": "充电",
+    "pe_shaman_change": "换电",
+    "service_pe_discharge": "放电",
+    "battery_flexible_upgrade": "灵活升级",
+    "nsom_so_maintenance": "一键维保",
+    "nsom_so_chauffeur": "驾享服务",
+    "chauffeur_vehicle_delivery": "一键送车",
+    "so_case_accident": "事故报案",
+}
+ORDER_TYPE_SWAP = "pe_shaman_change"
+ORDER_TYPE_MAINTENANCE = "nsom_so_maintenance"
+# orderNo + createTime are the only immutable fields; everything else (status,
+# payment, price, …) can change on later fetches, so orders are upserted by
+# orderNo. A status name containing this mark means the order was cancelled and
+# must be excluded from swap counts/cost.
+ORDER_STATUS_CANCELLED_MARK = "取消"
+
+# Long-term statistics object-ids. The HA layer prefixes the "nio:" source to
+# register these as external statistics, backfilled from each order's real
+# createTime so the history predates the integration install.
+STAT_SWAP_COST = "battery_swap_cost"
+STAT_SWAP_COUNT = "battery_swap_count"
+
+# Static query params for the orders request (offset/limit/orderTypes added per
+# call). No sign ⇒ param order and encoding don't matter to the server; these
+# mirror a captured request. region=US is harmless (still returns domestic).
+ORDERS_QUERY_STATIC = {
+    "hash_type": "sha256",
+    "lang": "zh",
+    "region": "US",
+    "tz_offset": "28800",
+    "nioAppVersion": "6.5.3",
+    "appVersion": "5.31.0",
+    "orderConfVersion": "5.31.0",
+    "app_ver": "6.5.3",
+    "inProgressStatus": "false",
+    "pagination_method": "2",
+}
+ORDERS_ORDER_TYPES_PARAM = ",".join(ORDER_TYPES)  # all 8 kinds, comma-joined

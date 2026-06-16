@@ -1,0 +1,89 @@
+{
+  "resultCode": "0000",
+  "resultMsg": "请求成功",
+  "resultData": {
+    "data": [
+      {
+        "orderNo": "FAKE000000000001",
+        "createTime": 1765756800000,
+        "orderType": "pe_shaman_change",
+        "orderName": "换电",
+        "orderStatus": "completed",
+        "orderStatusName": "换电已完成，已支付",
+        "paymentStatus": "paid",
+        "priceCash": 45.0,
+        "payDesc": "¥ 45.00",
+        "resourceAddress": "示例换电站A",
+        "vinCode": "FAKEVIN000000001"
+      },
+      {
+        "orderNo": "FAKE000000000002",
+        "createTime": 1768044600000,
+        "orderType": "pe_shaman_change",
+        "orderName": "换电",
+        "orderStatus": "completed",
+        "orderStatusName": "换电已完成，已支付",
+        "paymentStatus": "paid",
+        "priceCash": 50.0,
+        "payDesc": "¥ 50.00",
+        "resourceAddress": "示例换电站B",
+        "vinCode": "FAKEVIN000000001"
+      },
+      {
+        "orderNo": "FAKE000000007509",
+        "createTime": 1770045000000,
+        "orderType": "pe_shaman_change",
+        "orderName": "换电",
+        "orderStatus": "cancelled",
+        "orderStatusName": "已取消，欢迎反馈",
+        "paymentStatus": null,
+        "priceCash": null,
+        "payDesc": null,
+        "resourceAddress": "示例换电站C",
+        "vinCode": "FAKEVIN000000001"
+      },
+      {
+        "orderNo": "FAKE000000003605",
+        "createTime": 1770045780000,
+        "orderType": "pe_shaman_change",
+        "orderName": "换电",
+        "orderStatus": "completed",
+        "orderStatusName": "换电已完成，已支付",
+        "paymentStatus": "paid",
+        "priceCash": 48.58,
+        "payDesc": "¥ 48.58",
+        "resourceAddress": "示例换电站C",
+        "vinCode": "FAKEVIN000000001"
+      },
+      {
+        "orderNo": "FAKE000000000006",
+        "createTime": 1771128000000,
+        "orderType": "pe_shaman_change",
+        "orderName": "换电",
+        "orderStatus": "completed",
+        "orderStatusName": "换电已完成，未支付",
+        "paymentStatus": "unpaid",
+        "priceCash": 47.0,
+        "payDesc": "¥ 47.00",
+        "resourceAddress": "示例换电站D",
+        "vinCode": "FAKEVIN000000001"
+      },
+      {
+        "orderNo": "FAKE000000000005",
+        "createTime": 1772330400000,
+        "orderType": "nsom_so_maintenance",
+        "orderName": "一键维保",
+        "orderStatus": "completed",
+        "orderStatusName": "服务已完成",
+        "paymentStatus": "paid",
+        "priceCash": 200.0,
+        "payDesc": "¥ 200.00",
+        "resourceAddress": "示例维保点E",
+        "vinCode": "FAKEVIN000000001"
+      }
+    ],
+    "hasMore": false,
+    "lastCursorId": null,
+    "lastCursorCreateTime": null
+  }
+}
