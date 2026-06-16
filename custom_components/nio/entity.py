@@ -28,3 +28,21 @@ class NioEntity(CoordinatorEntity[NioDataUpdateCoordinator]):
             name=f"NIO {model}",
             sw_version=fota.get("current_version"),
         )
+
+
+class NioOrdersEntity(CoordinatorEntity):
+    """Base for service-order entities, linked to the same vehicle device.
+
+    Unlike :class:`NioEntity` it sets *no* device fields (name/model/sw_version)
+    — those belong to the status entities; this only carries the identifiers so
+    the orders entities group under the existing NIO device. Its coordinator's
+    data is the flat order snapshot, not the vehicle status payload.
+    """
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, key: str) -> None:
+        super().__init__(coordinator)
+        vehicle_id = coordinator.config_entry.data[CONF_VEHICLE_ID]
+        self._attr_unique_id = f"{vehicle_id}_{key}"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, vehicle_id)})

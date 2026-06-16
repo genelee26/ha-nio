@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import NioConfigEntry, NioDataUpdateCoordinator
-from .entity import NioEntity
+from .entity import NioEntity, NioOrdersEntity
 
 
 async def async_setup_entry(
@@ -37,15 +37,13 @@ class NioRefreshButton(NioEntity, ButtonEntity):
         await self.coordinator.async_request_refresh()
 
 
-class NioOrdersRefreshButton(NioEntity, ButtonEntity):
+class NioOrdersRefreshButton(NioOrdersEntity, ButtonEntity):
     """Trigger an immediate refresh of the service-order ledger."""
 
     _attr_translation_key = "refresh_orders"
     _attr_icon = "mdi:receipt-text-clock-outline"
 
     def __init__(self, coordinator) -> None:
-        # Reuses NioEntity (it only needs the coordinator's config_entry + data);
-        # ties this button to the same vehicle device as the status entities.
         super().__init__(coordinator, "refresh_orders")
 
     async def async_press(self) -> None:

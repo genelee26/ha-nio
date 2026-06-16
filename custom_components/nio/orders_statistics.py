@@ -50,15 +50,19 @@ def async_import_swap_statistics(
         _LOGGER.debug("recorder unavailable; skipping orders statistics")
         return
 
-    # HA 2026.x replaced ``has_mean: bool`` with a ``mean_type`` enum; prefer the
-    # new field where available (these are sum-only series, so mean is NONE) and
-    # fall back on older cores.
+    # HA 2026.x reworked StatisticMetaData: ``has_mean: bool`` → ``mean_type``
+    # enum, and now also wants an explicit ``unit_class`` (None for a currency /
+    # plain count — neither is unit-convertible). Both arrived together, so gate
+    # them on StatisticMeanType and fall back to the old shape on older cores.
     try:
         from homeassistant.components.recorder.models import StatisticMeanType
 
-        mean_meta: dict = {"mean_type": StatisticMeanType.NONE}
+        compat_meta: dict = {
+            "mean_type": StatisticMeanType.NONE,
+            "unit_class": None,
+        }
     except ImportError:  # pragma: no cover - older HA without mean_type
-        mean_meta = {"has_mean": False}
+        compat_meta = {"has_mean": False}
 
     for key, (name, unit) in _SPECS.items():
         series = points.get(key) or []
@@ -66,7 +70,7 @@ def async_import_swap_statistics(
             continue
         statistic_id = f"{DOMAIN}:{vehicle_id}_{key}"
         metadata: StatisticMetaData = {
-            **mean_meta,
+            **compat_meta,
             "has_sum": True,
             "name": name,
             "source": DOMAIN,

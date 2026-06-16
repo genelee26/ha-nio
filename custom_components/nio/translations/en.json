@@ -89,7 +89,24 @@
       "tyre_pressure_front_right": { "name": "Tyre pressure front right" },
       "tyre_pressure_rear_left": { "name": "Tyre pressure rear left" },
       "tyre_pressure_rear_right": { "name": "Tyre pressure rear right" },
-      "fota_version": { "name": "Firmware version" }
+      "fota_version": { "name": "Firmware version" },
+      "swap_total_cost": { "name": "Battery swap total cost" },
+      "swap_count": { "name": "Battery swap count" },
+      "swap_last_time": { "name": "Last swap time" },
+      "swap_last_cost": { "name": "Last swap cost" },
+      "swap_last_station": { "name": "Last swap station" },
+      "swap_month_count": { "name": "Swaps this month" },
+      "swap_month_cost": { "name": "Swap cost this month" },
+      "maintenance_count": { "name": "Maintenance count" },
+      "maintenance_last_time": { "name": "Last maintenance time" },
+      "orders_sync": {
+        "name": "Orders sync",
+        "state": {
+          "idle": "Idle",
+          "backfilling": "Backfilling history",
+          "up_to_date": "Up to date"
+        }
+      }
     },
     "binary_sensor": {
       "driving": { "name": "Driving" },

@@ -1,0 +1,58 @@
+# NIO service-order (billing) cards — battery-swap / maintenance usage.
+#
+# Two data sources:
+#   • External statistics (history, since long before you installed):
+#       nio:<vehicle_id>_battery_swap_cost   (CNY, cumulative)
+#       nio:<vehicle_id>_battery_swap_count  (cumulative)
+#     Find your <vehicle_id> at Developer Tools → Statistics → search "nio".
+#   • Snapshot sensors (current values), grouped under the NIO device. The
+#     entity_ids below assume the default "NIO EC6" device name — adjust if
+#     yours differs (use the entity picker).
+#
+# Paste as a manual card (Edit dashboard → Add card → Manual), then swap in
+# your vehicle_id.
+
+type: vertical-stack
+cards:
+  - type: statistics-graph
+    title: 换电累计花费
+    chart_type: line
+    period: month
+    stat_types:
+      - sum
+    entities:
+      - nio:<vehicle_id>_battery_swap_cost
+
+  - type: statistics-graph
+    title: 每月换电花费 / 次数
+    chart_type: bar
+    period: month
+    stat_types:
+      - change
+    entities:
+      - nio:<vehicle_id>_battery_swap_cost
+      - nio:<vehicle_id>_battery_swap_count
+
+  - type: entities
+    title: 换电 / 维保概览
+    entities:
+      - entity: sensor.nio_ec6_battery_swap_total_cost
+        name: 累计换电花费
+      - entity: sensor.nio_ec6_battery_swap_count
+        name: 累计换电次数
+      - entity: sensor.nio_ec6_last_swap_time
+        name: 最近换电
+      - entity: sensor.nio_ec6_last_swap_cost
+        name: 最近换电花费
+      - entity: sensor.nio_ec6_last_swap_station
+        name: 最近换电站点
+      - entity: sensor.nio_ec6_swaps_this_month
+        name: 本月换电次数
+      - entity: sensor.nio_ec6_swap_cost_this_month
+        name: 本月换电花费
+      - entity: sensor.nio_ec6_maintenance_count
+        name: 维保次数
+      - type: section
+        label: 诊断
+      - entity: sensor.nio_ec6_orders_sync
+        name: 订单同步状态
