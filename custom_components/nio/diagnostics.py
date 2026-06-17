@@ -47,6 +47,18 @@ async def async_get_config_entry_diagnostics(
 
     runtime = entry.runtime_data
     if isinstance(runtime, NioRuntimeData):
+        # Best-effort: refresh both raw responses on download, so the bundle
+        # always carries them even if no refresh button was pressed first
+        # (the orders client doesn't fetch on setup). A failed fetch is fine —
+        # the client still keeps whatever payload (incl. an error) it last saw.
+        for fetch in (
+            runtime.status.client.async_get_status,
+            runtime.orders.client.async_fetch_recent,
+        ):
+            try:
+                await fetch()
+            except Exception:  # noqa: BLE001 - diagnostics must never fail
+                pass
         diag["status_last_response"] = async_redact_data(
             runtime.status.client.last_response or {}, TO_REDACT
         )
