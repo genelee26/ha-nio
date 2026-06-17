@@ -39,6 +39,7 @@ from .const import (
     CONF_VEHICLE_ID,
     DEFAULT_DAY_END,
     DEFAULT_DAY_START,
+    DEFAULT_DEBUG,
     DEFAULT_INTERVAL_DAY,
     DEFAULT_INTERVAL_DRIVING,
     DEFAULT_INTERVAL_NIGHT,
@@ -46,6 +47,7 @@ from .const import (
     DOMAIN,
     OPT_DAY_END,
     OPT_DAY_START,
+    OPT_DEBUG,
     OPT_INTERVAL_DAY,
     OPT_INTERVAL_DRIVING,
     OPT_INTERVAL_NIGHT,
@@ -223,16 +225,38 @@ class NioOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         return self.async_show_menu(
-            step_id="init", menu_options=["intervals", "credentials"]
+            step_id="init", menu_options=["intervals", "credentials", "debug"]
         )
+
+    async def async_step_debug(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Toggle debug mode. Saving reloads the entry (update listener)."""
+        if user_input is not None:
+            return self.async_create_entry(
+                data={**self.config_entry.options, OPT_DEBUG: bool(user_input[OPT_DEBUG])}
+            )
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    OPT_DEBUG,
+                    default=self.config_entry.options.get(OPT_DEBUG, DEFAULT_DEBUG),
+                ): bool
+            }
+        )
+        return self.async_show_form(step_id="debug", data_schema=schema)
 
     async def async_step_intervals(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            # NumberSelector yields floats; store as ints.
+            # NumberSelector yields floats; store as ints. Preserve other options
+            # (e.g. the debug flag) so changing intervals doesn't drop them.
             return self.async_create_entry(
-                data={k: int(v) for k, v in user_input.items()}
+                data={
+                    **self.config_entry.options,
+                    **{k: int(v) for k, v in user_input.items()},
+                }
             )
 
         opts = self.config_entry.options

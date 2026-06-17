@@ -171,3 +171,10 @@ OPT_INTERVAL_ORDERS = "interval_orders_hours"
 DEFAULT_INTERVAL_ORDERS = 12  # steady-state refresh of the recent window (hours)
 BACKFILL_PAGE_GAP = 600  # seconds between backfill pages — gentle on the API
 ORDERS_STORAGE_VERSION = 1
+
+# --- Debug mode (option). When on: injected debug orders show + count in the
+# popup/sensors, and the refresh buttons prompt to download diagnostics (which
+# carry the last raw server responses). Debug orders never enter long-term
+# statistics, and are hidden + uncounted when debug is off (still in .storage). ---
+OPT_DEBUG = "debug"
+DEFAULT_DEBUG = False

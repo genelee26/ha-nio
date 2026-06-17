@@ -36,8 +36,14 @@
         "title": "NIO 选项",
         "menu_options": {
           "intervals": "刷新频率",
-          "credentials": "认证（Token）"
+          "credentials": "认证（Token）",
+          "debug": "调试模式"
         }
+      },
+      "debug": {
+        "title": "调试模式",
+        "description": "开启后：注入的调试订单会在弹窗/传感器里显示并计数（但永不进入长期统计），刷新按钮会提示下载诊断发给开发者。",
+        "data": { "debug": "启用调试模式" }
       },
       "intervals": {
         "title": "刷新频率",
@@ -79,6 +85,22 @@
           "name": "含已取消",
           "description": "结果中是否包含已取消的订单。"
         }
+      }
+    },
+    "inject_debug_order": {
+      "name": "注入调试订单",
+      "description": "仅开发者用：注入一条调试账单（内置样例或原始订单 dict）。标记为 debug——调试模式关时隐藏、不计数，且永不进长期统计。",
+      "fields": {
+        "device_id": { "name": "车辆", "description": "NIO 设备（只配一辆车时可不填）。" },
+        "sample": { "name": "内置样例", "description": "要注入的内置样例订单。" },
+        "order": { "name": "原始订单", "description": "要注入的原始订单 dict（getTabOrder 返回的格式），替代内置样例。" }
+      }
+    },
+    "clear_debug_orders": {
+      "name": "清除调试订单",
+      "description": "仅开发者用：从账本里移除所有注入的调试订单。",
+      "fields": {
+        "device_id": { "name": "车辆", "description": "NIO 设备（只配一辆车时可不填）。" }
       }
     }
   },

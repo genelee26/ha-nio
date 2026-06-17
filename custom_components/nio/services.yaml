@@ -10,3 +10,29 @@ get_service_orders:
       default: true
       selector:
         boolean:
+
+inject_debug_order:
+  fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: nio
+    sample:
+      required: false
+      selector:
+        select:
+          options:
+            - flexible_upgrade
+    order:
+      required: false
+      selector:
+        object:
+
+clear_debug_orders:
+  fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: nio

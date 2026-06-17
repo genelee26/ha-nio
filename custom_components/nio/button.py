@@ -3,11 +3,30 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.components.persistent_notification import (
+    async_create as async_create_notification,
+)
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import OPT_DEBUG
 from .coordinator import NioConfigEntry, NioDataUpdateCoordinator
 from .entity import NioEntity, NioOrdersEntity
+
+
+@callback
+def _debug_diagnostics_notice(coordinator) -> None:
+    """In debug mode, point the user at the diagnostics download after a refresh."""
+    entry = coordinator.config_entry
+    if not entry.options.get(OPT_DEBUG):
+        return
+    async_create_notification(
+        coordinator.hass,
+        "已刷新并捕获服务器完整返回。请到 设置 → 设备与服务 → NIO → 右上角 ⋮ → "
+        "「下载诊断」，把文件发给开发者帮助定位问题。",
+        title="NIO 调试：诊断已就绪",
+        notification_id="nio_debug_diagnostics",
+    )
 
 
 async def async_setup_entry(
@@ -35,6 +54,7 @@ class NioRefreshButton(NioEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await self.coordinator.async_request_refresh()
+        _debug_diagnostics_notice(self.coordinator)
 
 
 class NioOrdersRefreshButton(NioOrdersEntity, ButtonEntity):
@@ -48,3 +68,4 @@ class NioOrdersRefreshButton(NioOrdersEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await self.coordinator.async_request_refresh()
+        _debug_diagnostics_notice(self.coordinator)

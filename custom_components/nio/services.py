@@ -22,8 +22,11 @@ from homeassistant.helpers import config_validation as cv, device_registry as dr
 
 from .const import DOMAIN
 from .coordinator import NioRuntimeData
+from .debug_samples import DEBUG_SAMPLES
 
 SERVICE_GET_ORDERS = "get_service_orders"
+SERVICE_INJECT_DEBUG_ORDER = "inject_debug_order"
+SERVICE_CLEAR_DEBUG_ORDERS = "clear_debug_orders"
 
 GET_ORDERS_SCHEMA = vol.Schema(
     {
@@ -31,6 +34,16 @@ GET_ORDERS_SCHEMA = vol.Schema(
         vol.Optional("include_cancelled", default=True): cv.boolean,
     }
 )
+
+# Developer-only: inject a debug order (a built-in sample or a raw order dict).
+INJECT_DEBUG_SCHEMA = vol.Schema(
+    {
+        vol.Optional("device_id"): cv.string,
+        vol.Optional("sample"): vol.In(sorted(DEBUG_SAMPLES)),
+        vol.Optional("order"): dict,
+    }
+)
+CLEAR_DEBUG_SCHEMA = vol.Schema({vol.Optional("device_id"): cv.string})
 
 
 def _runtime_for_device(hass: HomeAssistant, device_id: str | None) -> NioRuntimeData:
@@ -80,4 +93,26 @@ def async_register_services(hass: HomeAssistant) -> None:
         _get_service_orders,
         schema=GET_ORDERS_SCHEMA,
         supports_response=SupportsResponse.ONLY,
+    )
+
+    async def _inject_debug_order(call: ServiceCall) -> None:
+        runtime = _runtime_for_device(hass, call.data.get("device_id"))
+        sample = call.data.get("sample")
+        order = call.data.get("order")
+        if order is None and sample is None:
+            raise ServiceValidationError(
+                "Provide a built-in 'sample' name or a raw 'order' dict"
+            )
+        raw = dict(order) if order is not None else dict(DEBUG_SAMPLES[sample])
+        await runtime.orders.async_inject_debug_order(raw)
+
+    async def _clear_debug_orders(call: ServiceCall) -> None:
+        runtime = _runtime_for_device(hass, call.data.get("device_id"))
+        await runtime.orders.async_clear_debug_orders()
+
+    hass.services.async_register(
+        DOMAIN, SERVICE_INJECT_DEBUG_ORDER, _inject_debug_order, schema=INJECT_DEBUG_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_CLEAR_DEBUG_ORDERS, _clear_debug_orders, schema=CLEAR_DEBUG_SCHEMA
     )
