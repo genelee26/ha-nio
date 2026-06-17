@@ -89,7 +89,24 @@
       "tyre_pressure_front_right": { "name": "胎压·右前" },
       "tyre_pressure_rear_left": { "name": "胎压·左后" },
       "tyre_pressure_rear_right": { "name": "胎压·右后" },
-      "fota_version": { "name": "固件版本" }
+      "fota_version": { "name": "固件版本" },
+      "swap_total_cost": { "name": "累计换电花费" },
+      "swap_count": { "name": "累计换电次数" },
+      "swap_last_time": { "name": "最近换电时间" },
+      "swap_last_cost": { "name": "最近换电花费" },
+      "swap_last_station": { "name": "最近换电站点" },
+      "swap_month_count": { "name": "本月换电次数" },
+      "swap_month_cost": { "name": "本月换电花费" },
+      "maintenance_count": { "name": "维保次数" },
+      "maintenance_last_time": { "name": "最近维保时间" },
+      "orders_sync": {
+        "name": "订单同步状态",
+        "state": {
+          "idle": "空闲",
+          "backfilling": "历史回填中",
+          "up_to_date": "已最新"
+        }
+      }
     },
     "binary_sensor": {
       "driving": { "name": "驾驶状态" },
@@ -104,7 +121,8 @@
       "location": { "name": "位置" }
     },
     "button": {
-      "refresh": { "name": "数据刷新" }
+      "refresh": { "name": "数据刷新" },
+      "refresh_orders": { "name": "刷新服务订单" }
     }
   }
 }

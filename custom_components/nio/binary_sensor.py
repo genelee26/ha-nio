@@ -136,7 +136,7 @@ async def async_setup_entry(
     entry: NioConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator = entry.runtime_data
+    coordinator = entry.runtime_data.status
     async_add_entities(
         NioBinarySensor(coordinator, description)
         for description in BINARY_SENSORS

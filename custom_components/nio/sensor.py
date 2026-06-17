@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -24,7 +25,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import NioConfigEntry, NioDataUpdateCoordinator
-from .entity import NioEntity
+from .entity import NioEntity, NioOrdersEntity
 
 
 def _section(data: dict[str, Any], section: str, key: str) -> Any:
@@ -156,14 +157,100 @@ SENSORS: tuple[NioSensorDescription, ...] = (
 )
 
 
+def _ms_to_dt(value: Any) -> datetime | None:
+    """Epoch-ms (order createTime) → tz-aware datetime for timestamp sensors."""
+    if not value:
+        return None
+    return datetime.fromtimestamp(int(value) / 1000, tz=timezone.utc)
+
+
+# Service-order snapshot sensors. They read the orders coordinator's flat
+# aggregate (orders.aggregate) rather than the vehicle status payload, and carry
+# no state_class — the long-term history is the external `nio:*` statistics, so a
+# state_class here would only duplicate it.
+ORDERS_SENSORS: tuple[NioSensorDescription, ...] = (
+    NioSensorDescription(
+        key="swap_total_cost",
+        translation_key="swap_total_cost",
+        native_unit_of_measurement="CNY",
+        icon="mdi:cash-multiple",
+        value_fn=lambda d: d.get("swap_total_cost"),
+    ),
+    NioSensorDescription(
+        key="swap_count",
+        translation_key="swap_count",
+        icon="mdi:battery-sync",
+        value_fn=lambda d: d.get("swap_count"),
+    ),
+    NioSensorDescription(
+        key="swap_last_time",
+        translation_key="swap_last_time",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:clock-check-outline",
+        value_fn=lambda d: _ms_to_dt(d.get("swap_last_time")),
+    ),
+    NioSensorDescription(
+        key="swap_last_cost",
+        translation_key="swap_last_cost",
+        native_unit_of_measurement="CNY",
+        icon="mdi:cash",
+        value_fn=lambda d: d.get("swap_last_cost"),
+    ),
+    NioSensorDescription(
+        key="swap_last_station",
+        translation_key="swap_last_station",
+        icon="mdi:map-marker",
+        value_fn=lambda d: d.get("swap_last_station"),
+    ),
+    NioSensorDescription(
+        key="swap_month_count",
+        translation_key="swap_month_count",
+        icon="mdi:calendar-sync",
+        value_fn=lambda d: d.get("swap_month_count"),
+    ),
+    NioSensorDescription(
+        key="swap_month_cost",
+        translation_key="swap_month_cost",
+        native_unit_of_measurement="CNY",
+        icon="mdi:calendar-month",
+        value_fn=lambda d: d.get("swap_month_cost"),
+    ),
+    NioSensorDescription(
+        key="maintenance_count",
+        translation_key="maintenance_count",
+        icon="mdi:wrench-clock",
+        value_fn=lambda d: d.get("maintenance_count"),
+    ),
+    NioSensorDescription(
+        key="maintenance_last_time",
+        translation_key="maintenance_last_time",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:wrench-check",
+        value_fn=lambda d: _ms_to_dt(d.get("maintenance_last_time")),
+    ),
+    NioSensorDescription(
+        key="orders_sync",
+        translation_key="orders_sync",
+        device_class=SensorDeviceClass.ENUM,
+        options=["idle", "backfilling", "up_to_date"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:database-sync",
+        value_fn=lambda d: d.get("sync_status"),
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: NioConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator = entry.runtime_data
+    runtime = entry.runtime_data
     async_add_entities(
-        NioSensor(coordinator, description) for description in SENSORS
+        NioSensor(runtime.status, description) for description in SENSORS
+    )
+    async_add_entities(
+        NioOrdersSensor(runtime.orders, description) for description in ORDERS_SENSORS
     )
 
 
@@ -183,3 +270,17 @@ class NioSensor(NioEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         return self.entity_description.value_fn(self.coordinator.data)
+
+
+class NioOrdersSensor(NioOrdersEntity, SensorEntity):
+    """A sensor backed by the orders coordinator's aggregate snapshot."""
+
+    entity_description: NioSensorDescription
+
+    def __init__(self, coordinator, description: NioSensorDescription) -> None:
+        super().__init__(coordinator, description.key)
+        self.entity_description = description
+
+    @property
+    def native_value(self) -> Any:
+        return self.entity_description.value_fn(self.coordinator.data or {})

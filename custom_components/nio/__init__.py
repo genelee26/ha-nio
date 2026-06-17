@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from homeassistant.components.frontend import add_extra_js_url
@@ -11,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_integration
 
-from .api import NioApiClient
+from .api import NioApiClient, NioOrdersClient
 from .capture import reconstruct_query_v1
 from .const import (
     CONF_MODEL,
@@ -22,7 +23,10 @@ from .const import (
     DOMAIN,
     STATIC_URL_BASE,
 )
-from .coordinator import NioConfigEntry, NioDataUpdateCoordinator
+from .coordinator import NioConfigEntry, NioDataUpdateCoordinator, NioRuntimeData
+from .orders_coordinator import NioOrdersCoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
@@ -51,8 +55,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
             hass, f"{STATIC_URL_BASE}/nio-car-card.js?v={integration.version}"
         )
         hass.data[DOMAIN]["static_registered"] = True
+    session = async_get_clientsession(hass)
     client = NioApiClient(
-        async_get_clientsession(hass),
+        session,
         token=entry.data[CONF_TOKEN],
         vehicle_id=entry.data[CONF_VEHICLE_ID],
         query=entry.data[CONF_QUERY],
@@ -60,7 +65,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
     coordinator = NioDataUpdateCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
 
-    entry.runtime_data = coordinator
+    orders_coordinator = NioOrdersCoordinator(
+        hass, entry, NioOrdersClient(session, token=entry.data[CONF_TOKEN])
+    )
+    try:
+        await orders_coordinator.async_setup()
+    except Exception:  # noqa: BLE001 - orders are non-critical; never block setup
+        _LOGGER.exception("NIO orders setup failed; continuing without orders")
+
+    entry.runtime_data = NioRuntimeData(status=coordinator, orders=orders_coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
