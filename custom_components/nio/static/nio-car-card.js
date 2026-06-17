@@ -466,8 +466,12 @@ class NioCarCard extends HTMLElement {
     ov.className = "nio-ord-overlay";
     ov.innerHTML = `
       <style>
+        /* Top-anchored (not vertically centred): the dialog grows/shrinks at the
+           BOTTOM as months gain/lose orders, so the header + month-switch arrows
+           stay put — you can click ‹ › repeatedly without the target moving. */
         .nio-ord-overlay { position: fixed; inset: 0; z-index: 10000; display: flex;
-                           align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
+                           align-items: flex-start; justify-content: center;
+                           padding: 6vh 0; box-sizing: border-box; background: rgba(0,0,0,.45); }
         .nio-ord-dialog { background: var(--card-background-color, #fff);
                           backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
                           color: var(--primary-text-color, #1c1c1c);
@@ -494,6 +498,10 @@ class NioCarCard extends HTMLElement {
         .nav-btn { background: none; border: none; cursor: pointer; font-size: 22px; line-height: 1;
                    color: var(--primary-color, #03a9f4); padding: 4px 12px; border-radius: 6px; }
         .nav-btn:disabled { color: var(--disabled-text-color, #c2c2c2); cursor: default; }
+        /* Reserve a steady height ~one swap order tall, so swap/maintenance/empty
+           months match (no gap); a taller flexible-upgrade order just extends
+           downward. The top anchor keeps the arrows fixed regardless. */
+        .nio-ord-detail { min-height: 200px; }
         .onav { display: flex; align-items: center; justify-content: space-between;
                 font-size: 13px; color: var(--secondary-text-color); margin-top: 6px; }
         .ocard { margin: 10px 0 6px; padding: 16px 16px 18px; border-radius: 10px;
@@ -510,7 +518,7 @@ class NioCarCard extends HTMLElement {
         /* empty month: keep the popup from collapsing — a blank card the rough
            height of a populated one, with the message centred. */
         .ocard.ord-empty { display: flex; align-items: center; justify-content: center;
-                           min-height: 200px; color: var(--secondary-text-color); font-size: 14px; }
+                           min-height: 184px; color: var(--secondary-text-color); font-size: 14px; }
         .orow { display: flex; align-items: flex-start; gap: 7px; margin-top: 14px;
                 font-size: 13.5px; line-height: 1.45; color: var(--secondary-text-color); }
         .orow ha-icon { --mdc-icon-size: 17px; flex: none; margin-top: 1px; }
