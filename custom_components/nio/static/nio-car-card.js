@@ -78,6 +78,56 @@ function formatState(hass, entityId) {
   return unit ? `${st.state} ${unit}` : st.state;
 }
 
+/* ------------------------------------------------ service-orders helpers */
+
+const ORDER_TYPE_ICONS = {
+  pe_shaman: "mdi:ev-station",
+  pe_shaman_change: "mdi:battery-sync",
+  service_pe_discharge: "mdi:transmission-tower-export",
+  battery_flexible_upgrade: "mdi:battery-plus-variant",
+  nsom_so_maintenance: "mdi:wrench-clock",
+  nsom_so_chauffeur: "mdi:account-tie",
+  chauffeur_vehicle_delivery: "mdi:car-arrow-right",
+  so_case_accident: "mdi:car-emergency",
+};
+
+const CST_OFFSET_MS = 8 * 3600 * 1000; // orders are billed/grouped in China time
+
+// Month as one integer (year*12 + 0-based month) in China time, so prev/next is
+// ±1 and clamping to the data range is trivial.
+function monthIndexCN(ms) {
+  const d = new Date(ms + CST_OFFSET_MS);
+  return d.getUTCFullYear() * 12 + d.getUTCMonth();
+}
+function monthLabelCN(idx) {
+  return `${Math.floor(idx / 12)} 年 ${(idx % 12) + 1} 月`;
+}
+function dateTimeCN(ms) {
+  const d = new Date(ms + CST_OFFSET_MS);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+// Badge category derived from the NIO status text (which is shown verbatim).
+function orderStatusCat(name) {
+  name = name || "";
+  if (name.includes("取消")) return "cancelled";
+  if (name.includes("已支付")) return "paid";
+  if (name.includes("待支付") || name.includes("未支付")) return "pending";
+  return "neutral";
+}
+function moneyCN(order) {
+  if (order.payDesc) return order.payDesc;
+  if (order.priceCash != null) return `¥ ${order.priceCash}`;
+  return "—";
+}
+// Escape server-sourced order text before injecting into innerHTML.
+function esc(s) {
+  return String(s == null ? "" : s).replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])
+  );
+}
+
 /* ---------------------------------------------------------------- card */
 
 class NioCarCard extends HTMLElement {
@@ -175,6 +225,7 @@ class NioCarCard extends HTMLElement {
       { key: "sleeping" },
       { key: "door" },
       { key: "window" },
+      { key: "orders", static: true, icon: "mdi:receipt-text-outline", label: "账单" },
     ];
     this.shadowRoot.innerHTML = `
       <style>
@@ -220,9 +271,11 @@ class NioCarCard extends HTMLElement {
             ${iconItems
               .map(
                 (it) =>
-                  `<div class="icon-item" id="ic_${it.key}">
-                     <ha-icon icon="mdi:help-circle-outline"></ha-icon>
-                     <span class="lbl"></span>
+                  `<div class="icon-item${it.static ? " static" : ""}" id="ic_${it.key}"${
+                    it.static ? ` title="${it.label}"` : ""
+                  }>
+                     <ha-icon icon="${it.icon || "mdi:help-circle-outline"}"></ha-icon>
+                     <span class="lbl">${it.label || ""}</span>
                    </div>`
               )
               .join("")}
@@ -239,6 +292,14 @@ class NioCarCard extends HTMLElement {
     const open = () => this._openPopup();
     this.shadowRoot.getElementById("img").addEventListener("click", open);
     this.shadowRoot.getElementById("bar").addEventListener("click", open);
+    // The orders icon lives inside the bar, so stop its click from bubbling up
+    // to the bar's status-popup handler — it opens the billing popup instead.
+    const ordIc = this.shadowRoot.getElementById("ic_orders");
+    if (ordIc)
+      ordIc.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._openOrdersPopup();
+      });
     this._updateStates();
   }
 
@@ -313,6 +374,7 @@ class NioCarCard extends HTMLElement {
 
   disconnectedCallback() {
     this._closePopup();
+    this._closeOrdersPopup();
   }
 
   _renderPopupBody() {
@@ -354,6 +416,235 @@ class NioCarCard extends HTMLElement {
         fireEvent(this, "hass-more-info", { entityId: row.dataset.entity });
       });
     });
+  }
+
+  /* ---- billing popup: own overlay, data via the nio.get_service_orders
+   * response service. Month nav + single-order paging are client-side over the
+   * one fetched list, so opening costs exactly one service call. */
+  _openOrdersPopup() {
+    if (!this._config?.device_id || !this._hass) return;
+    this._closeOrdersPopup();
+    const ov = document.createElement("div");
+    ov.className = "nio-ord-overlay";
+    ov.innerHTML = `
+      <style>
+        .nio-ord-overlay { position: fixed; inset: 0; z-index: 10000; display: flex;
+                           align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
+        .nio-ord-dialog { background: var(--card-background-color, #fff);
+                          color: var(--primary-text-color, #1c1c1c);
+                          border-radius: var(--ha-card-border-radius, 12px);
+                          width: min(420px, 92vw); max-height: 86vh; overflow-y: auto;
+                          box-shadow: 0 8px 32px rgba(0,0,0,.35);
+                          font-family: var(--mdc-typography-font-family, Roboto, system-ui, sans-serif); }
+        .nio-ord-head { display: flex; align-items: center; justify-content: space-between;
+                        padding: 14px 18px 8px; font-size: 18px; font-weight: 500; }
+        .nio-ord-head ha-icon { cursor: pointer; color: var(--secondary-text-color); }
+        .nio-ord-body { padding: 4px 18px 8px; }
+        .nio-ord-loading, .nio-ord-empty { padding: 28px 4px; text-align: center;
+                          color: var(--secondary-text-color); font-size: 14px; line-height: 1.6; }
+        .nio-ord-sum { font-size: 13px; color: var(--secondary-text-color);
+                       padding: 4px 0 10px; border-bottom: 1px solid var(--divider-color); }
+        .nio-ord-month { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 2px; }
+        .nio-ord-month .mlabel { text-align: center; font-size: 16px; font-weight: 600; flex: 1; }
+        .nio-ord-month .msub { font-size: 12px; font-weight: 400; color: var(--secondary-text-color); margin-top: 2px; }
+        .nav-btn { background: none; border: none; cursor: pointer; font-size: 22px; line-height: 1;
+                   color: var(--primary-color, #03a9f4); padding: 4px 12px; border-radius: 6px; }
+        .nav-btn:disabled { color: var(--disabled-text-color, #c2c2c2); cursor: default; }
+        .onav { display: flex; align-items: center; justify-content: space-between;
+                font-size: 13px; color: var(--secondary-text-color); margin-top: 4px; }
+        .ocard { margin: 8px 0 4px; padding: 12px 14px; border-radius: 10px;
+                 background: var(--secondary-background-color, #f4f4f4); }
+        .ocard .ohead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .ocard .otype { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; }
+        .ocard .otype ha-icon { --mdc-icon-size: 20px; }
+        .obadge { font-size: 12px; padding: 2px 9px; border-radius: 10px; white-space: nowrap; }
+        .obadge.cat-paid { background: rgba(46,125,50,.15); color: #2e7d32; }
+        .obadge.cat-pending { background: rgba(245,124,0,.15); color: #e8740c; }
+        .obadge.cat-cancelled { background: rgba(120,120,120,.18); color: var(--secondary-text-color); }
+        .obadge.cat-neutral { background: var(--divider-color); color: var(--secondary-text-color); }
+        .ocard.cat-cancelled .otype, .ocard.cat-cancelled .amt { text-decoration: line-through; opacity: .65; }
+        .orow { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; color: var(--secondary-text-color); }
+        .orow ha-icon { --mdc-icon-size: 16px; }
+        .orow.money { justify-content: space-between; margin-top: 10px; }
+        .orow .amt { font-size: 16px; font-weight: 600; color: var(--primary-text-color); }
+        .orow .ono { font-size: 11px; color: var(--secondary-text-color); }
+        .nio-ord-foot { display: flex; justify-content: space-between; padding: 8px 18px 16px; }
+        .nio-ord-foot button { background: none; border: none; cursor: pointer;
+                               color: var(--primary-color, #03a9f4); font-size: 14px; font-weight: 500;
+                               padding: 8px 12px; border-radius: 6px; }
+      </style>
+      <div class="nio-ord-dialog">
+        <div class="nio-ord-head">
+          <span>${esc(this._title())} 账单 / 订单</span>
+          <ha-icon icon="mdi:close" class="nio-ord-close"></ha-icon>
+        </div>
+        <div class="nio-ord-body"><div class="nio-ord-loading">加载中…</div></div>
+        <div class="nio-ord-foot">
+          <button class="nio-ord-refresh">刷新</button>
+          <button class="nio-ord-done">完成</button>
+        </div>
+      </div>
+    `;
+    ov.addEventListener("click", (e) => { if (e.target === ov) this._closeOrdersPopup(); });
+    ov.querySelector(".nio-ord-close").addEventListener("click", () => this._closeOrdersPopup());
+    ov.querySelector(".nio-ord-done").addEventListener("click", () => this._closeOrdersPopup());
+    ov.querySelector(".nio-ord-refresh").addEventListener("click", () => this._fetchOrders(true));
+    document.body.appendChild(ov);
+    this._ordOverlay = ov;
+    this._fetchOrders(false);
+  }
+
+  _closeOrdersPopup() {
+    if (this._ordOverlay) {
+      this._ordOverlay.remove();
+      this._ordOverlay = null;
+    }
+  }
+
+  async _fetchOrders(keepPos) {
+    if (!this._ordOverlay) return;
+    const body = this._ordOverlay.querySelector(".nio-ord-body");
+    try {
+      const res = await this._hass.callService(
+        "nio",
+        "get_service_orders",
+        { device_id: this._config.device_id, include_cancelled: true },
+        undefined,
+        false,
+        true
+      );
+      const data = (res && res.response) || {};
+      const orders = data.orders || [];
+      const prev = this._ord || {};
+      this._ord = {
+        summary: data.summary || {},
+        orders,
+        monthIdx: keepPos ? prev.monthIdx : null,
+        orderIdx: keepPos ? prev.orderIdx || 0 : 0,
+      };
+      if (orders.length) {
+        const months = orders.map((o) => monthIndexCN(o.createTime));
+        const cur = monthIndexCN(Date.now());
+        this._ord.minMonth = Math.min(...months);
+        this._ord.maxMonth = Math.max(cur, ...months);
+        if (this._ord.monthIdx == null) {
+          this._ord.monthIdx = Math.min(Math.max(cur, this._ord.minMonth), this._ord.maxMonth);
+          this._ord.orderIdx = 0;
+        }
+      }
+      this._renderOrdersPopup();
+    } catch (err) {
+      body.innerHTML = `<div class="nio-ord-loading">加载失败：${esc(
+        (err && err.message) || err
+      )}<br>（需集成 v0.4.0+ 且订单已回填）</div>`;
+    }
+  }
+
+  _renderOrdersPopup() {
+    if (!this._ordOverlay || !this._ord) return;
+    const body = this._ordOverlay.querySelector(".nio-ord-body");
+    const { summary, orders } = this._ord;
+    if (!orders.length) {
+      body.innerHTML = `<div class="nio-ord-empty">暂无服务订单。</div>`;
+      return;
+    }
+    this._ord.monthIdx = Math.min(
+      Math.max(this._ord.monthIdx, this._ord.minMonth),
+      this._ord.maxMonth
+    );
+    const mIdx = this._ord.monthIdx;
+    const monthOrders = orders.filter((o) => monthIndexCN(o.createTime) === mIdx);
+    if (this._ord.orderIdx >= monthOrders.length) this._ord.orderIdx = 0;
+    const oIdx = this._ord.orderIdx;
+
+    const swCount = summary.swap_count ?? "—";
+    const swCost = summary.swap_total_cost ?? "—";
+    const maintCount = summary.maintenance_count ?? 0;
+
+    const monthSwaps = monthOrders.filter(
+      (o) =>
+        o.orderType === "pe_shaman_change" &&
+        orderStatusCat(o.orderStatusName) !== "cancelled"
+    );
+    const mCount = monthSwaps.length;
+    const mCost = monthSwaps.reduce((s, o) => s + (o.priceCash || 0), 0);
+
+    const detail = monthOrders.length
+      ? this._orderDetailHtml(monthOrders[oIdx], oIdx, monthOrders.length)
+      : `<div class="nio-ord-empty">本月无订单</div>`;
+
+    body.innerHTML = `
+      <div class="nio-ord-sum">累计换电 ${swCount} 次 · ¥${swCost}　·　维保 ${maintCount} 次</div>
+      <div class="nio-ord-month">
+        <button class="nav-btn mprev" ${mIdx <= this._ord.minMonth ? "disabled" : ""}>‹</button>
+        <div class="mlabel">${monthLabelCN(mIdx)}
+          <div class="msub">${mCount ? `换电 ${mCount} 次 · ¥${mCost.toFixed(2)}` : "本月无换电"}</div>
+        </div>
+        <button class="nav-btn mnext" ${mIdx >= this._ord.maxMonth ? "disabled" : ""}>›</button>
+      </div>
+      <div class="nio-ord-detail">${detail}</div>
+    `;
+
+    const q = (sel) => body.querySelector(sel);
+    q(".mprev").addEventListener("click", () => {
+      if (this._ord.monthIdx > this._ord.minMonth) {
+        this._ord.monthIdx--;
+        this._ord.orderIdx = 0;
+        this._renderOrdersPopup();
+      }
+    });
+    q(".mnext").addEventListener("click", () => {
+      if (this._ord.monthIdx < this._ord.maxMonth) {
+        this._ord.monthIdx++;
+        this._ord.orderIdx = 0;
+        this._renderOrdersPopup();
+      }
+    });
+    const op = q(".oprev");
+    const on = q(".onext");
+    if (op)
+      op.addEventListener("click", () => {
+        if (this._ord.orderIdx > 0) {
+          this._ord.orderIdx--;
+          this._renderOrdersPopup();
+        }
+      });
+    if (on)
+      on.addEventListener("click", () => {
+        if (this._ord.orderIdx < monthOrders.length - 1) {
+          this._ord.orderIdx++;
+          this._renderOrdersPopup();
+        }
+      });
+  }
+
+  _orderDetailHtml(o, idx, total) {
+    const cat = orderStatusCat(o.orderStatusName);
+    const icon = ORDER_TYPE_ICONS[o.orderType] || "mdi:receipt-text-outline";
+    const station = o.station
+      ? `<div class="orow"><ha-icon icon="mdi:map-marker"></ha-icon><span>${esc(o.station)}</span></div>`
+      : "";
+    const ono = o.orderNo ? `<span class="ono">单号 ${esc(o.orderNo)}</span>` : "";
+    return `
+      <div class="onav">
+        <button class="nav-btn oprev" ${idx <= 0 ? "disabled" : ""}>‹</button>
+        <span>${idx + 1} / ${total} 笔</span>
+        <button class="nav-btn onext" ${idx >= total - 1 ? "disabled" : ""}>›</button>
+      </div>
+      <div class="ocard cat-${cat}">
+        <div class="ohead">
+          <span class="otype"><ha-icon icon="${icon}"></ha-icon>${esc(
+            o.orderName || o.orderType || "订单"
+          )}</span>
+          <span class="obadge cat-${cat}">${esc(o.orderStatusName || "—")}</span>
+        </div>
+        <div class="orow"><ha-icon icon="mdi:clock-outline"></ha-icon><span>${dateTimeCN(
+          o.createTime
+        )}</span></div>
+        ${station}
+        <div class="orow money"><span class="amt">${esc(moneyCN(o))}</span>${ono}</div>
+      </div>
+    `;
   }
 
   _updateStates() {

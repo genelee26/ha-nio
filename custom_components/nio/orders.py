@@ -143,6 +143,26 @@ def aggregate(ledger: dict[str, dict], now_ms: int | None = None) -> dict[str, A
     return result
 
 
+def build_orders_response(
+    ledger: dict[str, dict], now_ms: int, include_cancelled: bool = True
+) -> dict[str, Any]:
+    """Full detail payload for the ``get_service_orders`` service / card popup.
+
+    The aggregate summary plus every order, **newest-first**. Cancelled orders
+    are kept (the popup shows them struck-through, flagged by orderStatusName)
+    unless ``include_cancelled`` is False. The card does month/order navigation
+    client-side over this one list, so the service returns everything at once.
+    """
+    orders = sorted(ledger.values(), key=lambda o: o["createTime"], reverse=True)
+    if not include_cancelled:
+        orders = [o for o in orders if not is_cancelled(o)]
+    return {
+        "summary": aggregate(ledger, now_ms=now_ms),
+        "orders": orders,
+        "order_total": len(ledger),
+    }
+
+
 def _floor_hour(create_ms: int) -> int:
     return (create_ms // _HOUR_MS) * _HOUR_MS
 

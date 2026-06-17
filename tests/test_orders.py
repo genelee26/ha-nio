@@ -115,6 +115,26 @@ def test_stat_points_cumulative_and_tail():
     print("  cumulative statistics + dirty-tail ✓")
 
 
+def test_build_orders_response():
+    ledger = _fresh_ledger()
+    resp = orders.build_orders_response(ledger, now_ms=_ms(2026, 2, 28, 12, 0))
+    assert resp["order_total"] == 6
+    # newest-first, every order present (incl. the cancelled one by default).
+    times = [o["createTime"] for o in resp["orders"]]
+    assert times == sorted(times, reverse=True), "orders sorted newest-first"
+    assert len(resp["orders"]) == 6
+    assert resp["summary"]["swap_count"] == 4  # aggregate carried through
+
+    # include_cancelled=False drops the one cancelled order from the list (but
+    # the summary still counts only non-cancelled swaps either way).
+    resp2 = orders.build_orders_response(
+        ledger, now_ms=_ms(2026, 2, 28, 12, 0), include_cancelled=False
+    )
+    assert len(resp2["orders"]) == 5
+    assert not any(orders.is_cancelled(o) for o in resp2["orders"])
+    print("  build_orders_response ✓")
+
+
 def test_build_orders_query():
     q = orders.build_orders_query(0, 50)
     assert " " not in q, "no spaces in the query"
@@ -152,6 +172,7 @@ if __name__ == "__main__":
         test_cancellation_after_record,
         test_month,
         test_stat_points_cumulative_and_tail,
+        test_build_orders_response,
         test_build_orders_query,
         test_response_classify_and_extract,
     ):

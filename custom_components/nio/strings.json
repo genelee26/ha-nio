@@ -66,6 +66,22 @@
       "cannot_connect": "Could not reach the NIO API."
     }
   },
+  "services": {
+    "get_service_orders": {
+      "name": "Get service orders",
+      "description": "Return the full NIO service-order (battery swap / maintenance / billing) history for a vehicle.",
+      "fields": {
+        "device_id": {
+          "name": "Vehicle",
+          "description": "The NIO device to query (optional if only one vehicle is configured)."
+        },
+        "include_cancelled": {
+          "name": "Include cancelled",
+          "description": "Include cancelled orders in the result."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery": { "name": "Battery" },

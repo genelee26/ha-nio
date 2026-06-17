@@ -95,6 +95,12 @@ class NioOrdersCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         snap["order_total"] = len(self._ledger)
         return snap
 
+    def orders_response(self, include_cancelled: bool = True) -> dict[str, Any]:
+        """Full ledger + summary for the get_service_orders service / card popup."""
+        return orders_logic.build_orders_response(
+            self._ledger, _now_ms(), include_cancelled=include_cancelled
+        )
+
     async def _persist(self) -> None:
         await self._store.async_save(
             {

@@ -25,6 +25,7 @@ from .const import (
 )
 from .coordinator import NioConfigEntry, NioDataUpdateCoordinator, NioRuntimeData
 from .orders_coordinator import NioOrdersCoordinator
+from .services import async_register_services
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
             hass, f"{STATIC_URL_BASE}/nio-car-card.js?v={integration.version}"
         )
         hass.data[DOMAIN]["static_registered"] = True
+    async_register_services(hass)  # idempotent (self-guards on has_service)
     session = async_get_clientsession(hass)
     client = NioApiClient(
         session,
