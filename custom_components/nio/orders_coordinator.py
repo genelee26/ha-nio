@@ -156,7 +156,11 @@ class NioOrdersCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Steady-state tick (12h / manual button): refresh the recent window."""
         if not self._backfill_complete:
-            # The backfill task owns fetching until history is in — don't double up.
+            # Backfill owns fetching until history is in, so don't double up — but
+            # resume it if a transient (non-auth) error stalled it. _start_backfill
+            # is idempotent (a no-op while the task is still running); this also
+            # lets the manual "refresh orders" button un-stick a paused backfill.
+            self._start_backfill()
             return self._snapshot()
         try:
             recent = await self.client.async_fetch_recent()
