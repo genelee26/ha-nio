@@ -507,6 +507,10 @@ class NioCarCard extends HTMLElement {
         .obadge.cat-cancelled { background: rgba(120,120,120,.18); color: var(--secondary-text-color); }
         .obadge.cat-neutral { background: var(--divider-color); color: var(--secondary-text-color); }
         .ocard.cat-cancelled .otype, .ocard.cat-cancelled .amt { text-decoration: line-through; opacity: .65; }
+        /* empty month: keep the popup from collapsing — a blank card the rough
+           height of a populated one, with the message centred. */
+        .ocard.ord-empty { display: flex; align-items: center; justify-content: center;
+                           min-height: 200px; color: var(--secondary-text-color); font-size: 14px; }
         .orow { display: flex; align-items: flex-start; gap: 7px; margin-top: 14px;
                 font-size: 13.5px; line-height: 1.45; color: var(--secondary-text-color); }
         .orow ha-icon { --mdc-icon-size: 17px; flex: none; margin-top: 1px; }
@@ -614,14 +618,16 @@ class NioCarCard extends HTMLElement {
       : `<div class="typecounts">暂无订单</div>`;
 
     const monthCounts = typeCounts(monthOrders);
+    // Empty month: keep the subtitle line height (nbsp) but don't repeat the
+    // message — the blank detail card below carries "本月无订单".
     const msub = monthCounts.length
       ? monthCounts.map((c) => `${esc(c.name)} ${c.count} 次`).join(" · ") +
         `　¥${totalSpend(monthOrders).toFixed(2)}`
-      : "本月无订单";
+      : " ";
 
     const detail = monthOrders.length
       ? this._orderDetailHtml(monthOrders[oIdx], oIdx, monthOrders.length)
-      : `<div class="nio-ord-empty">本月无订单</div>`;
+      : `<div class="ocard ord-empty">本月无订单</div>`;
 
     body.innerHTML = `
       <div class="nio-ord-sum">${sumHtml}</div>
