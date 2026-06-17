@@ -1,0 +1,12 @@
+get_service_orders:
+  fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: nio
+    include_cancelled:
+      required: false
+      default: true
+      selector:
+        boolean:

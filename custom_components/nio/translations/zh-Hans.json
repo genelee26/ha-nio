@@ -66,6 +66,22 @@
       "cannot_connect": "无法连接 NIO API。"
     }
   },
+  "services": {
+    "get_service_orders": {
+      "name": "获取服务订单",
+      "description": "返回某辆车完整的服务订单历史（换电 / 维保 / 账单）。",
+      "fields": {
+        "device_id": {
+          "name": "车辆",
+          "description": "要查询的 NIO 设备（只配了一辆车时可不填）。"
+        },
+        "include_cancelled": {
+          "name": "含已取消",
+          "description": "结果中是否包含已取消的订单。"
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery": { "name": "电池电量" },

@@ -36,11 +36,44 @@ def _to_float(value: Any) -> float | None:
         return None
 
 
+def _order_amount(raw: dict) -> float | None:
+    """Unified order cost across order types.
+
+    Swaps carry a top-level ``priceCash``; flexible-upgrade / rental orders carry
+    no priceCash — their fee is inside ``extendInfo.paymentInfo[].amount`` (e.g. a
+    monthly upgrade fee). Fall back to summing those.
+    """
+    price = _to_float(raw.get("priceCash"))
+    if price is not None:
+        return price
+    infos = (raw.get("extendInfo") or {}).get("paymentInfo") or []
+    total = 0.0
+    found = False
+    for item in infos:
+        amt = _to_float(item.get("amount"))
+        if amt is not None:
+            total += amt
+            found = True
+    return round(total, 2) if found else None
+
+
+def _fee_name(raw: dict) -> str | None:
+    """Fee label(s) from ``extendInfo.paymentInfo`` (e.g. the upgrade-fee text)."""
+    names = [
+        i.get("name")
+        for i in (raw.get("extendInfo") or {}).get("paymentInfo") or []
+        if i.get("name")
+    ]
+    return " / ".join(names) if names else None
+
+
 def normalize_order(raw: dict) -> dict:
     """Project a raw API order onto the curated, type-coerced ledger shape.
 
-    Keeps only what the snapshots/statistics need; PII like ``vinCode`` is
-    intentionally dropped so the ledger persisted in ``.storage`` stays lean.
+    Keeps only what the snapshots/statistics/popup need; PII like ``vinCode`` is
+    dropped so the persisted ledger stays lean. Handles the differing shapes:
+    swaps (``priceCash`` + ``resourceAddress``) vs flexible-upgrade orders
+    (``extendInfo.paymentInfo`` amount + ``pickUpName``/``returnName``).
     """
     return {
         "orderNo": str(raw.get("orderNo") or ""),
@@ -50,9 +83,13 @@ def normalize_order(raw: dict) -> dict:
         "orderStatus": raw.get("orderStatus"),
         "orderStatusName": raw.get("orderStatusName"),
         "paymentStatus": raw.get("paymentStatus"),
+        "amount": _order_amount(raw),
         "priceCash": _to_float(raw.get("priceCash")),
         "payDesc": raw.get("payDesc"),
         "station": raw.get("resourceAddress") or raw.get("address"),
+        "pickUpName": raw.get("pickUpName"),
+        "returnName": raw.get("returnName"),
+        "feeName": _fee_name(raw),
     }
 
 
@@ -141,6 +178,26 @@ def aggregate(ledger: dict[str, dict], now_ms: int | None = None) -> dict[str, A
         result["swap_month_cost"] = round(sum(_swap_cost(o) for o in month_swaps), 2)
 
     return result
+
+
+def build_orders_response(
+    ledger: dict[str, dict], now_ms: int, include_cancelled: bool = True
+) -> dict[str, Any]:
+    """Full detail payload for the ``get_service_orders`` service / card popup.
+
+    The aggregate summary plus every order, **newest-first**. Cancelled orders
+    are kept (the popup shows them struck-through, flagged by orderStatusName)
+    unless ``include_cancelled`` is False. The card does month/order navigation
+    client-side over this one list, so the service returns everything at once.
+    """
+    orders = sorted(ledger.values(), key=lambda o: o["createTime"], reverse=True)
+    if not include_cancelled:
+        orders = [o for o in orders if not is_cancelled(o)]
+    return {
+        "summary": aggregate(ledger, now_ms=now_ms),
+        "orders": orders,
+        "order_total": len(ledger),
+    }
 
 
 def _floor_hour(create_ms: int) -> int:
