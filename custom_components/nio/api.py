@@ -66,6 +66,7 @@ class NioApiClient:
         self._session = session
         self._vehicle_id = vehicle_id
         self._query = query
+        self.last_response: Any = None  # last raw payload, for debug diagnostics
         # Replay verbatim — encoded=True stops yarl from re-encoding the query
         # (which would change the bytes the sign was computed over).
         self._url = URL(
@@ -94,6 +95,7 @@ class NioApiClient:
         except aiohttp.ClientError as err:
             raise NioApiError(f"Connection error: {err}") from err
 
+        self.last_response = payload
         code = (payload or {}).get("result_code")
         if code == "success":
             data = payload.get("data")
@@ -131,6 +133,7 @@ class NioOrdersClient:
 
     def __init__(self, session: aiohttp.ClientSession, *, token: str) -> None:
         self._session = session
+        self.last_response: Any = None  # last raw payload, for debug diagnostics
         self._headers = {
             "Accept": "application/json",
             "User-Agent": ORDERS_USER_AGENT,
@@ -155,6 +158,7 @@ class NioOrdersClient:
         except aiohttp.ClientError as err:
             raise NioApiError(f"Connection error: {err}") from err
 
+        self.last_response = payload
         result = classify_orders_result(payload, status)
         if result == "ok":
             return extract_orders(payload)

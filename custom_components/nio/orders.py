@@ -101,6 +101,16 @@ def is_swap(order: dict) -> bool:
     return order.get("orderType") == const.ORDER_TYPE_SWAP
 
 
+def is_debug(order: dict) -> bool:
+    """A debug-injected order — hidden + uncounted unless debug mode is on."""
+    return bool(order.get("debug"))
+
+
+def _visible(ledger: dict[str, dict], include_debug: bool) -> list[dict]:
+    """Ledger orders minus debug ones, unless ``include_debug`` (debug mode on)."""
+    return [o for o in ledger.values() if include_debug or not is_debug(o)]
+
+
 def _counted_swap(order: dict) -> bool:
     """A swap that actually happened (cancelled attempts don't count)."""
     return is_swap(order) and not is_cancelled(order)
@@ -141,13 +151,17 @@ def _year_month(create_ms: int) -> tuple[int, int]:
     return dt.year, dt.month
 
 
-def aggregate(ledger: dict[str, dict], now_ms: int | None = None) -> dict[str, Any]:
+def aggregate(
+    ledger: dict[str, dict], now_ms: int | None = None, include_debug: bool = False
+) -> dict[str, Any]:
     """Derive snapshot values from the ledger: totals, the latest swap, month.
 
-    Cancelled swaps are excluded from counts and cost. Passing ``now_ms`` adds
-    the current-month figures, computed in China time.
+    Cancelled swaps are excluded from counts and cost; debug orders too unless
+    ``include_debug``. Passing ``now_ms`` adds the current-month figures (China
+    time).
     """
-    swaps = [o for o in ledger.values() if _counted_swap(o)]
+    vals = _visible(ledger, include_debug)
+    swaps = [o for o in vals if _counted_swap(o)]
     swaps_desc = sorted(swaps, key=lambda o: o["createTime"], reverse=True)
     last = swaps_desc[0] if swaps_desc else None
 
@@ -162,7 +176,7 @@ def aggregate(ledger: dict[str, dict], now_ms: int | None = None) -> dict[str, A
 
     maint = [
         o
-        for o in ledger.values()
+        for o in vals
         if o.get("orderType") == const.ORDER_TYPE_MAINTENANCE and not is_cancelled(o)
     ]
     maint_desc = sorted(maint, key=lambda o: o["createTime"], reverse=True)
@@ -181,22 +195,28 @@ def aggregate(ledger: dict[str, dict], now_ms: int | None = None) -> dict[str, A
 
 
 def build_orders_response(
-    ledger: dict[str, dict], now_ms: int, include_cancelled: bool = True
+    ledger: dict[str, dict],
+    now_ms: int,
+    include_cancelled: bool = True,
+    include_debug: bool = False,
 ) -> dict[str, Any]:
     """Full detail payload for the ``get_service_orders`` service / card popup.
 
     The aggregate summary plus every order, **newest-first**. Cancelled orders
-    are kept (the popup shows them struck-through, flagged by orderStatusName)
-    unless ``include_cancelled`` is False. The card does month/order navigation
-    client-side over this one list, so the service returns everything at once.
+    are kept (the popup shows them struck-through) unless ``include_cancelled``
+    is False; debug orders are included only when ``include_debug`` (debug mode
+    on). The card does month/order navigation client-side over this one list.
     """
-    orders = sorted(ledger.values(), key=lambda o: o["createTime"], reverse=True)
+    orders = sorted(
+        _visible(ledger, include_debug), key=lambda o: o["createTime"], reverse=True
+    )
+    total = len(orders)
     if not include_cancelled:
         orders = [o for o in orders if not is_cancelled(o)]
     return {
-        "summary": aggregate(ledger, now_ms=now_ms),
+        "summary": aggregate(ledger, now_ms=now_ms, include_debug=include_debug),
         "orders": orders,
-        "order_total": len(ledger),
+        "order_total": total,
     }
 
 
@@ -216,8 +236,10 @@ def build_stat_points(
     only those hours and keeps the earlier ones. Idempotent: same ledger → same
     points.
     """
+    # Debug orders never enter long-term statistics (they'd pollute the
+    # persistent recorder DB, which is awkward to clean).
     swaps = sorted(
-        (o for o in ledger.values() if _counted_swap(o)),
+        (o for o in ledger.values() if _counted_swap(o) and not is_debug(o)),
         key=lambda o: o["createTime"],
     )
     cost_run = 0.0

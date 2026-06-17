@@ -26,8 +26,10 @@ from .api import NioApiError, NioAuthError, NioOrdersClient
 from .const import (
     BACKFILL_PAGE_GAP,
     CONF_VEHICLE_ID,
+    DEFAULT_DEBUG,
     DEFAULT_INTERVAL_ORDERS,
     DOMAIN,
+    OPT_DEBUG,
     OPT_INTERVAL_ORDERS,
     ORDERS_PAGE_SIZE,
     ORDERS_STORAGE_VERSION,
@@ -63,6 +65,8 @@ class NioOrdersCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.client = client
         self._vehicle_id = entry.data[CONF_VEHICLE_ID]
+        # Re-read on every reload; an options change reloads the entry.
+        self._debug = bool(entry.options.get(OPT_DEBUG, DEFAULT_DEBUG))
         self._store: Store = Store(
             hass, ORDERS_STORAGE_VERSION, f"{DOMAIN}_orders_{entry.entry_id}"
         )
@@ -90,7 +94,9 @@ class NioOrdersCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._start_backfill()
 
     def _snapshot(self) -> dict[str, Any]:
-        snap = orders_logic.aggregate(self._ledger, now_ms=_now_ms())
+        snap = orders_logic.aggregate(
+            self._ledger, now_ms=_now_ms(), include_debug=self._debug
+        )
         snap["sync_status"] = self.sync_status
         snap["order_total"] = len(self._ledger)
         return snap
@@ -98,8 +104,51 @@ class NioOrdersCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def orders_response(self, include_cancelled: bool = True) -> dict[str, Any]:
         """Full ledger + summary for the get_service_orders service / card popup."""
         return orders_logic.build_orders_response(
-            self._ledger, _now_ms(), include_cancelled=include_cancelled
+            self._ledger,
+            _now_ms(),
+            include_cancelled=include_cancelled,
+            include_debug=self._debug,
         )
+
+    async def async_inject_debug_order(self, raw: dict) -> dict:
+        """Inject a debug order (developer-only): normalize, flag, persist.
+
+        Flagged ``debug`` so it is hidden + uncounted unless debug mode is on,
+        and never enters long-term statistics. createTime defaults to now so the
+        sample lands in the current month.
+        """
+        order = orders_logic.normalize_order(raw)
+        order["debug"] = True
+        if not order.get("createTime"):
+            order["createTime"] = _now_ms()
+        if not order.get("orderNo"):
+            order["orderNo"] = f"DEBUG{_now_ms()}"
+        self._ledger[order["orderNo"]] = order
+        await self._persist()
+        self.async_set_updated_data(self._snapshot())
+        return order
+
+    async def async_clear_debug_orders(self) -> int:
+        """Remove every debug-flagged order. Returns how many were removed."""
+        removed = [k for k, o in self._ledger.items() if orders_logic.is_debug(o)]
+        for key in removed:
+            del self._ledger[key]
+        if removed:
+            await self._persist()
+            self.async_set_updated_data(self._snapshot())
+        return len(removed)
+
+    def diagnostics(self) -> dict[str, Any]:
+        """Raw state for the config-entry diagnostics download (redacted there)."""
+        return {
+            "debug": self._debug,
+            "sync_status": self.sync_status,
+            "backfill_complete": self._backfill_complete,
+            "backfill_offset": self._backfill_offset,
+            "ledger_size": len(self._ledger),
+            "last_response": self.client.last_response,
+            "ledger": list(self._ledger.values()),
+        }
 
     async def _persist(self) -> None:
         await self._store.async_save(

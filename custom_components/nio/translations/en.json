@@ -36,8 +36,14 @@
         "title": "NIO options",
         "menu_options": {
           "intervals": "Polling cadence",
-          "credentials": "Credentials (token)"
+          "credentials": "Credentials (token)",
+          "debug": "Debug mode"
         }
+      },
+      "debug": {
+        "title": "Debug mode",
+        "description": "When on, injected debug orders show and count in the popup/sensors (never in long-term statistics), and the refresh buttons prompt to download diagnostics for the developer.",
+        "data": { "debug": "Enable debug mode" }
       },
       "intervals": {
         "title": "Polling cadence",
@@ -79,6 +85,22 @@
           "name": "Include cancelled",
           "description": "Include cancelled orders in the result."
         }
+      }
+    },
+    "inject_debug_order": {
+      "name": "Inject debug order",
+      "description": "Developer-only: inject a debug billing order (a built-in sample or a raw order dict). Flagged debug — hidden unless debug mode is on, and never counted in long-term statistics.",
+      "fields": {
+        "device_id": { "name": "Vehicle", "description": "The NIO device (optional if only one vehicle is configured)." },
+        "sample": { "name": "Built-in sample", "description": "A bundled sample order to inject." },
+        "order": { "name": "Raw order", "description": "A raw order dict (as returned by getTabOrder) to inject instead of a sample." }
+      }
+    },
+    "clear_debug_orders": {
+      "name": "Clear debug orders",
+      "description": "Developer-only: remove all injected debug orders from the ledger.",
+      "fields": {
+        "device_id": { "name": "Vehicle", "description": "The NIO device (optional if only one vehicle is configured)." }
       }
     }
   },

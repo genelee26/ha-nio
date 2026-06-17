@@ -151,6 +151,41 @@ def test_normalize_flexible_upgrade():
     print("  flexible-upgrade normalize + swap back-compat ✓")
 
 
+def test_debug_orders_filtered():
+    ledger = _fresh_ledger()
+    base = orders.aggregate(ledger)["swap_count"]
+    stats_base = orders.build_stat_points(ledger)
+
+    dbg = orders.normalize_order(
+        {
+            "orderNo": "DEBUGSWAP1",
+            "createTime": _ms(2026, 6, 1, 10, 0),
+            "orderType": "pe_shaman_change",
+            "orderName": "换电",
+            "orderStatusName": "换电已完成，已支付",
+            "priceCash": 50.0,
+            "resourceAddress": "调试站",
+        }
+    )
+    dbg["debug"] = True
+    led2 = dict(ledger, DEBUGSWAP1=dbg)
+
+    # debug OFF (default): not counted, not in response, never in stats
+    assert orders.aggregate(led2)["swap_count"] == base
+    off = orders.build_orders_response(led2, now_ms=_ms(2026, 6, 30, 0, 0))
+    assert all(o["orderNo"] != "DEBUGSWAP1" for o in off["orders"])
+    assert orders.build_stat_points(led2) == stats_base, "debug never in statistics"
+
+    # debug ON: counted + present, but STILL absent from statistics
+    assert orders.aggregate(led2, include_debug=True)["swap_count"] == base + 1
+    on = orders.build_orders_response(
+        led2, now_ms=_ms(2026, 6, 30, 0, 0), include_debug=True
+    )
+    assert any(o["orderNo"] == "DEBUGSWAP1" for o in on["orders"])
+    assert orders.build_stat_points(led2) == stats_base, "debug never in statistics"
+    print("  debug filtered off / shown on / never in stats ✓")
+
+
 def test_build_orders_response():
     ledger = _fresh_ledger()
     resp = orders.build_orders_response(ledger, now_ms=_ms(2026, 2, 28, 12, 0))
@@ -209,6 +244,7 @@ if __name__ == "__main__":
         test_month,
         test_stat_points_cumulative_and_tail,
         test_normalize_flexible_upgrade,
+        test_debug_orders_filtered,
         test_build_orders_response,
         test_build_orders_query,
         test_response_classify_and_extract,
