@@ -115,6 +115,42 @@ def test_stat_points_cumulative_and_tail():
     print("  cumulative statistics + dirty-tail ✓")
 
 
+# A flexible-upgrade order (netizen sample, sanitized): no priceCash/station —
+# fee lives in extendInfo.paymentInfo, and there are pick-up + return stations.
+FLEX_UPGRADE_RAW = {
+    "orderType": "battery_flexible_upgrade",
+    "orderName": "灵活升级",
+    "createTime": 1777863000000,
+    "orderStatus": "1000",
+    "orderStatusName": "服务已完成",
+    "orderNo": "FAKEFLEX00000001",
+    "paymentStatus": "4",
+    "pickUpName": "G1京哈高速沈阳世代车城 蔚来换电站",
+    "returnName": "大连甘井子区政府北 蔚来换电站",
+    "extendInfo": {
+        "paymentInfo": [
+            {"amount": 83, "name": "长续航（100kWh）按月灵活升级费用", "type": 5}
+        ],
+        "payInArrears": False,
+    },
+}
+
+
+def test_normalize_flexible_upgrade():
+    o = orders.normalize_order(FLEX_UPGRADE_RAW)
+    assert o["orderType"] == "battery_flexible_upgrade"
+    assert o["priceCash"] is None and o["station"] is None
+    assert o["amount"] == 83.0, "fee read from extendInfo.paymentInfo"
+    assert o["pickUpName"].startswith("G1京哈")
+    assert o["returnName"].startswith("大连")
+    assert o["feeName"] == "长续航（100kWh）按月灵活升级费用"
+    assert not orders.is_swap(o) and not orders.is_cancelled(o)
+    # swaps still normalize as before (priceCash → amount, resourceAddress → station)
+    sw = orders.normalize_order(_find(DATA, "FAKE000000000006"))
+    assert sw["amount"] == sw["priceCash"] and sw["station"]
+    print("  flexible-upgrade normalize + swap back-compat ✓")
+
+
 def test_build_orders_response():
     ledger = _fresh_ledger()
     resp = orders.build_orders_response(ledger, now_ms=_ms(2026, 2, 28, 12, 0))
@@ -172,6 +208,7 @@ if __name__ == "__main__":
         test_cancellation_after_record,
         test_month,
         test_stat_points_cumulative_and_tail,
+        test_normalize_flexible_upgrade,
         test_build_orders_response,
         test_build_orders_query,
         test_response_classify_and_extract,

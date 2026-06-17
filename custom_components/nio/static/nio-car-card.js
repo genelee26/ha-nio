@@ -90,6 +90,42 @@ const ORDER_TYPE_ICONS = {
   chauffeur_vehicle_delivery: "mdi:car-arrow-right",
   so_case_accident: "mdi:car-emergency",
 };
+const ORDER_TYPE_NAMES = {
+  pe_shaman: "充电",
+  pe_shaman_change: "换电",
+  service_pe_discharge: "放电",
+  battery_flexible_upgrade: "灵活升级",
+  nsom_so_maintenance: "一键维保",
+  nsom_so_chauffeur: "驾享服务",
+  chauffeur_vehicle_delivery: "一键送车",
+  so_case_accident: "事故报案",
+};
+function orderTypeName(o) {
+  return o.orderName || ORDER_TYPE_NAMES[o.orderType] || o.orderType || "订单";
+}
+// Unified cost: prefer the server's amount, fall back to a swap's priceCash.
+function orderAmount(o) {
+  return o.amount != null ? o.amount : o.priceCash;
+}
+// Per-type counts over non-cancelled orders (first-seen order preserved), and
+// the total spend — both computed client-side so the header scales to all 8
+// service types and to the unified amount.
+function typeCounts(orders) {
+  const m = new Map();
+  for (const o of orders) {
+    if (orderStatusCat(o.orderStatusName) === "cancelled") continue;
+    const t = o.orderType || "?";
+    if (!m.has(t)) m.set(t, { name: orderTypeName(o), count: 0 });
+    m.get(t).count++;
+  }
+  return [...m.values()];
+}
+function totalSpend(orders) {
+  return orders.reduce((s, o) => {
+    if (orderStatusCat(o.orderStatusName) === "cancelled") return s;
+    return s + (orderAmount(o) || 0);
+  }, 0);
+}
 
 const CST_OFFSET_MS = 8 * 3600 * 1000; // orders are billed/grouped in China time
 
@@ -111,14 +147,15 @@ function dateTimeCN(ms) {
 function orderStatusCat(name) {
   name = name || "";
   if (name.includes("取消")) return "cancelled";
-  if (name.includes("已支付")) return "paid";
   if (name.includes("待支付") || name.includes("未支付")) return "pending";
+  if (name.includes("已支付")) return "paid";
+  if (name.includes("完成")) return "done"; // e.g. 灵活升级「服务已完成」
   return "neutral";
 }
 function moneyCN(order) {
   if (order.payDesc) return order.payDesc;
-  if (order.priceCash != null) return `¥ ${order.priceCash}`;
-  return "—";
+  const a = orderAmount(order);
+  return a != null ? `¥ ${a}` : "—";
 }
 // Escape server-sourced order text before injecting into innerHTML.
 function esc(s) {
@@ -442,32 +479,39 @@ class NioCarCard extends HTMLElement {
         .nio-ord-body { padding: 4px 18px 8px; }
         .nio-ord-loading, .nio-ord-empty { padding: 28px 4px; text-align: center;
                           color: var(--secondary-text-color); font-size: 14px; line-height: 1.6; }
-        .nio-ord-sum { font-size: 13px; color: var(--secondary-text-color);
-                       padding: 4px 0 10px; border-bottom: 1px solid var(--divider-color); }
-        .nio-ord-month { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 2px; }
+        .nio-ord-sum { padding: 6px 0 12px; border-bottom: 1px solid var(--divider-color); }
+        .nio-ord-sum .typecounts { display: flex; flex-wrap: wrap; gap: 6px 14px;
+                       font-size: 13px; color: var(--secondary-text-color); }
+        .nio-ord-sum .typecounts b { color: var(--primary-text-color); font-weight: 600; }
+        .nio-ord-sum .total { margin-top: 9px; font-size: 13px; color: var(--secondary-text-color); }
+        .nio-ord-sum .total b { color: var(--primary-text-color); font-weight: 600; }
+        .nio-ord-month { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 4px; }
         .nio-ord-month .mlabel { text-align: center; font-size: 16px; font-weight: 600; flex: 1; }
-        .nio-ord-month .msub { font-size: 12px; font-weight: 400; color: var(--secondary-text-color); margin-top: 2px; }
+        .nio-ord-month .msub { font-size: 12px; font-weight: 400; color: var(--secondary-text-color);
+                       margin-top: 4px; line-height: 1.5; }
         .nav-btn { background: none; border: none; cursor: pointer; font-size: 22px; line-height: 1;
                    color: var(--primary-color, #03a9f4); padding: 4px 12px; border-radius: 6px; }
         .nav-btn:disabled { color: var(--disabled-text-color, #c2c2c2); cursor: default; }
         .onav { display: flex; align-items: center; justify-content: space-between;
-                font-size: 13px; color: var(--secondary-text-color); margin-top: 4px; }
-        .ocard { margin: 8px 0 4px; padding: 12px 14px; border-radius: 10px;
+                font-size: 13px; color: var(--secondary-text-color); margin-top: 6px; }
+        .ocard { margin: 10px 0 6px; padding: 16px 16px 18px; border-radius: 10px;
                  background: var(--secondary-background-color, #f4f4f4); }
-        .ocard .ohead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .ocard .otype { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; }
+        .ocard .ohead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .ocard .otype { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 600; }
         .ocard .otype ha-icon { --mdc-icon-size: 20px; }
-        .obadge { font-size: 12px; padding: 2px 9px; border-radius: 10px; white-space: nowrap; }
-        .obadge.cat-paid { background: rgba(46,125,50,.15); color: #2e7d32; }
+        .obadge { font-size: 12px; padding: 3px 10px; border-radius: 10px; white-space: nowrap; }
+        .obadge.cat-paid, .obadge.cat-done { background: rgba(46,125,50,.15); color: #2e7d32; }
         .obadge.cat-pending { background: rgba(245,124,0,.15); color: #e8740c; }
         .obadge.cat-cancelled { background: rgba(120,120,120,.18); color: var(--secondary-text-color); }
         .obadge.cat-neutral { background: var(--divider-color); color: var(--secondary-text-color); }
         .ocard.cat-cancelled .otype, .ocard.cat-cancelled .amt { text-decoration: line-through; opacity: .65; }
-        .orow { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; color: var(--secondary-text-color); }
-        .orow ha-icon { --mdc-icon-size: 16px; }
-        .orow.money { justify-content: space-between; margin-top: 10px; }
-        .orow .amt { font-size: 16px; font-weight: 600; color: var(--primary-text-color); }
+        .orow { display: flex; align-items: flex-start; gap: 7px; margin-top: 14px;
+                font-size: 13.5px; line-height: 1.45; color: var(--secondary-text-color); }
+        .orow ha-icon { --mdc-icon-size: 17px; flex: none; margin-top: 1px; }
+        .orow.money { align-items: baseline; justify-content: space-between; margin-top: 16px; }
+        .orow .amt { font-size: 17px; font-weight: 600; color: var(--primary-text-color); }
         .orow .ono { font-size: 11px; color: var(--secondary-text-color); }
+        .ocard .ofee { margin-top: 12px; font-size: 12px; line-height: 1.5; color: var(--secondary-text-color); }
         .nio-ord-foot { display: flex; justify-content: space-between; padding: 8px 18px 16px; }
         .nio-ord-foot button { background: none; border: none; cursor: pointer;
                                color: var(--primary-color, #03a9f4); font-size: 14px; font-weight: 500;
@@ -480,7 +524,7 @@ class NioCarCard extends HTMLElement {
         </div>
         <div class="nio-ord-body"><div class="nio-ord-loading">加载中…</div></div>
         <div class="nio-ord-foot">
-          <button class="nio-ord-refresh">刷新</button>
+          <button class="nio-ord-refresh">订单刷新</button>
           <button class="nio-ord-done">完成</button>
         </div>
       </div>
@@ -543,7 +587,7 @@ class NioCarCard extends HTMLElement {
   _renderOrdersPopup() {
     if (!this._ordOverlay || !this._ord) return;
     const body = this._ordOverlay.querySelector(".nio-ord-body");
-    const { summary, orders } = this._ord;
+    const { orders } = this._ord;
     if (!orders.length) {
       body.innerHTML = `<div class="nio-ord-empty">暂无服务订单。</div>`;
       return;
@@ -557,28 +601,32 @@ class NioCarCard extends HTMLElement {
     if (this._ord.orderIdx >= monthOrders.length) this._ord.orderIdx = 0;
     const oIdx = this._ord.orderIdx;
 
-    const swCount = summary.swap_count ?? "—";
-    const swCost = summary.swap_total_cost ?? "—";
-    const maintCount = summary.maintenance_count ?? 0;
+    // Header: per-type counts (only types present) + total spend — scales to
+    // all 8 service types and wraps. Month line: same, scoped to the month.
+    const counts = typeCounts(orders);
+    const sumHtml = counts.length
+      ? `<div class="typecounts">${counts
+          .map((c) => `<span>${esc(c.name)} <b>${c.count}</b> 次</span>`)
+          .join("")}</div>
+         <div class="total">累计花费 <b>¥${totalSpend(orders).toFixed(2)}</b></div>`
+      : `<div class="typecounts">暂无订单</div>`;
 
-    const monthSwaps = monthOrders.filter(
-      (o) =>
-        o.orderType === "pe_shaman_change" &&
-        orderStatusCat(o.orderStatusName) !== "cancelled"
-    );
-    const mCount = monthSwaps.length;
-    const mCost = monthSwaps.reduce((s, o) => s + (o.priceCash || 0), 0);
+    const monthCounts = typeCounts(monthOrders);
+    const msub = monthCounts.length
+      ? monthCounts.map((c) => `${esc(c.name)} ${c.count} 次`).join(" · ") +
+        `　¥${totalSpend(monthOrders).toFixed(2)}`
+      : "本月无订单";
 
     const detail = monthOrders.length
       ? this._orderDetailHtml(monthOrders[oIdx], oIdx, monthOrders.length)
       : `<div class="nio-ord-empty">本月无订单</div>`;
 
     body.innerHTML = `
-      <div class="nio-ord-sum">累计换电 ${swCount} 次 · ¥${swCost}　·　维保 ${maintCount} 次</div>
+      <div class="nio-ord-sum">${sumHtml}</div>
       <div class="nio-ord-month">
         <button class="nav-btn mprev" ${mIdx <= this._ord.minMonth ? "disabled" : ""}>‹</button>
         <div class="mlabel">${monthLabelCN(mIdx)}
-          <div class="msub">${mCount ? `换电 ${mCount} 次 · ¥${mCost.toFixed(2)}` : "本月无换电"}</div>
+          <div class="msub">${msub}</div>
         </div>
         <button class="nav-btn mnext" ${mIdx >= this._ord.maxMonth ? "disabled" : ""}>›</button>
       </div>
@@ -621,9 +669,17 @@ class NioCarCard extends HTMLElement {
   _orderDetailHtml(o, idx, total) {
     const cat = orderStatusCat(o.orderStatusName);
     const icon = ORDER_TYPE_ICONS[o.orderType] || "mdi:receipt-text-outline";
-    const station = o.station
-      ? `<div class="orow"><ha-icon icon="mdi:map-marker"></ha-icon><span>${esc(o.station)}</span></div>`
-      : "";
+    // One station (swaps) OR a pick-up → return pair (flexible upgrade / rental).
+    let places = "";
+    if (o.station) {
+      places = `<div class="orow"><ha-icon icon="mdi:map-marker"></ha-icon><span>${esc(o.station)}</span></div>`;
+    } else if (o.pickUpName || o.returnName) {
+      if (o.pickUpName)
+        places += `<div class="orow"><ha-icon icon="mdi:map-marker-up"></ha-icon><span>取&nbsp;${esc(o.pickUpName)}</span></div>`;
+      if (o.returnName)
+        places += `<div class="orow"><ha-icon icon="mdi:map-marker-down"></ha-icon><span>还&nbsp;${esc(o.returnName)}</span></div>`;
+    }
+    const fee = o.feeName ? `<div class="ofee">${esc(o.feeName)}</div>` : "";
     const ono = o.orderNo ? `<span class="ono">单号 ${esc(o.orderNo)}</span>` : "";
     return `
       <div class="onav">
@@ -633,16 +689,13 @@ class NioCarCard extends HTMLElement {
       </div>
       <div class="ocard cat-${cat}">
         <div class="ohead">
-          <span class="otype"><ha-icon icon="${icon}"></ha-icon>${esc(
-            o.orderName || o.orderType || "订单"
-          )}</span>
+          <span class="otype"><ha-icon icon="${icon}"></ha-icon>${esc(orderTypeName(o))}</span>
           <span class="obadge cat-${cat}">${esc(o.orderStatusName || "—")}</span>
         </div>
-        <div class="orow"><ha-icon icon="mdi:clock-outline"></ha-icon><span>${dateTimeCN(
-          o.createTime
-        )}</span></div>
-        ${station}
+        <div class="orow"><ha-icon icon="mdi:clock-outline"></ha-icon><span>${dateTimeCN(o.createTime)}</span></div>
+        ${places}
         <div class="orow money"><span class="amt">${esc(moneyCN(o))}</span>${ono}</div>
+        ${fee}
       </div>
     `;
   }
