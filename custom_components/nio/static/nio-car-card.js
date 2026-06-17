@@ -354,6 +354,7 @@ class NioCarCard extends HTMLElement {
                           align-items: center; justify-content: center;
                           background: rgba(0,0,0,.45); }
         .nio-cc-dialog { background: var(--card-background-color, #fff);
+                         backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
                          color: var(--primary-text-color, #1c1c1c);
                          border-radius: var(--ha-card-border-radius, 12px);
                          width: min(420px, 92vw); max-height: 86vh; overflow-y: auto;
@@ -468,6 +469,7 @@ class NioCarCard extends HTMLElement {
         .nio-ord-overlay { position: fixed; inset: 0; z-index: 10000; display: flex;
                            align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
         .nio-ord-dialog { background: var(--card-background-color, #fff);
+                          backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
                           color: var(--primary-text-color, #1c1c1c);
                           border-radius: var(--ha-card-border-radius, 12px);
                           width: min(420px, 92vw); max-height: 86vh; overflow-y: auto;
