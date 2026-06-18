@@ -37,6 +37,8 @@ const ENTITY_KEYS = [
   "remaining_actual_range",
   "remaining_range",
   "battery",
+  "charging",
+  "vehicle_state",
   "driving",
   "sleeping",
   "door",
@@ -100,6 +102,8 @@ const ORDER_TYPE_NAMES = {
   chauffeur_vehicle_delivery: "一键送车",
   so_case_accident: "事故报案",
 };
+// Canonical order of the 8 service types — drives the filter menu.
+const ORDER_TYPE_ORDER = Object.keys(ORDER_TYPE_NAMES);
 function orderTypeName(o) {
   return o.orderName || ORDER_TYPE_NAMES[o.orderType] || o.orderType || "订单";
 }
@@ -256,13 +260,13 @@ class NioCarCard extends HTMLElement {
     const lum = 0.299 * barRgb[0] + 0.587 * barRgb[1] + 0.114 * barRgb[2];
     const barFg = lum > 150 ? "#1c1c1c" : "#ffffff";
     const showLabels = cfg.show_labels !== false;
+    // Bottom bar consolidated to 3 glyphs so it never clips on narrow / mobile
+    // widths: motion-state (sleep>drive>park), security (door+window+lock), and
+    // orders. Battery moved out to its own badge over the car (top-right).
     const iconItems = [
-      { key: "battery" },
-      { key: "driving" },
-      { key: "sleeping" },
-      { key: "door" },
-      { key: "window" },
-      { key: "orders", static: true, icon: "mdi:receipt-text-outline", label: "账单" },
+      { key: "state" },
+      { key: "security" },
+      { key: "orders", static: true, icon: "mdi:order-bool-descending-variant", label: "账单" },
     ];
     this.shadowRoot.innerHTML = `
       <style>
@@ -271,10 +275,21 @@ class NioCarCard extends HTMLElement {
            force ha-card background (often !important) cannot override it.
            Height flows from content (car image + bar) — no fixed aspect
            ratio, so there is never letterbox gap above or below the car. */
-        .canvas { display: flex; flex-direction: column; ${bgImage} }
+        .canvas { position: relative; display: flex; flex-direction: column; ${bgImage} }
         .img-wrap { width: 100%; cursor: pointer; font-size: 0; }
         .img-wrap img { width: 100%; height: auto; display: block;
                         box-sizing: border-box; padding: 3% 3%; }
+        /* Battery promoted to a hero badge over the car (top-right). Dark
+           translucent pill reads on both the light studio backdrop and a custom
+           bg image; tapping it opens the battery's native history. */
+        .batt-badge { position: absolute; top: 10px; right: 12px; z-index: 2;
+                      display: flex; align-items: center; gap: 4px; line-height: 1;
+                      cursor: pointer; padding: 4px 10px; border-radius: 14px;
+                      background: rgba(0,0,0,.30);
+                      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+                      color: #fff; font-size: 13px; font-weight: 600; }
+        .batt-badge ha-icon { --mdc-icon-size: 18px; }
+        .batt-badge.alert { color: var(--error-color, #ff5252); }
         .bar { flex: 0 0 auto;
                display: flex; align-items: center; justify-content: space-between;
                padding: 8px 16px; box-sizing: border-box;
@@ -301,6 +316,7 @@ class NioCarCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="canvas">
+        <div class="batt-badge" id="batt"><ha-icon icon="mdi:battery"></ha-icon><span class="bpct">—</span></div>
         <div class="img-wrap" id="img"><img src="${this._imageUrl()}" alt=""></div>
         <div class="bar" id="bar">
           <span class="title"><span class="brand"></span><span>${this._nameOnly()}</span><span class="range" id="range"></span></span>
@@ -329,22 +345,37 @@ class NioCarCard extends HTMLElement {
     const open = () => this._openPopup();
     this.shadowRoot.getElementById("img").addEventListener("click", open);
     this.shadowRoot.getElementById("bar").addEventListener("click", open);
-    // The orders icon lives inside the bar, so stop its click from bubbling up
-    // to the bar's status-popup handler — it opens the billing popup instead.
-    const ordIc = this.shadowRoot.getElementById("ic_orders");
-    if (ordIc)
-      ordIc.addEventListener("click", (e) => {
+    // Each glyph drills into its OWN detail (stopPropagation so the click doesn't
+    // also trigger the bar/image full-overview popup). Single entities (battery)
+    // jump to native more-info with its history chart; the consolidated glyphs
+    // (state, security) open a focused popup listing their constituent entities.
+    const batt = this.shadowRoot.getElementById("batt");
+    if (batt)
+      batt.addEventListener("click", (e) => {
         e.stopPropagation();
-        this._openOrdersPopup();
+        if (this._entities?.battery)
+          fireEvent(this, "hass-more-info", { entityId: this._entities.battery });
       });
+    const wire = (id, fn) => {
+      const el = this.shadowRoot.getElementById(id);
+      if (el)
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          fn();
+        });
+    };
+    wire("ic_state", () => this._openPopup("state"));
+    wire("ic_security", () => this._openPopup("security"));
+    wire("ic_orders", () => this._openOrdersPopup());
     this._updateStates();
   }
 
   /* The popup is mounted on document.body, NOT inside the card's shadow DOM:
    * themes that put transform/backdrop-filter on ha-card turn the card into
    * the containing block for position:fixed, clipping the dialog to the card. */
-  _openPopup() {
+  _openPopup(focus) {
     if (!this._entities || !this._hass) return;
+    this._popupFocus = focus || null;
     this._closePopup();
     const ov = document.createElement("div");
     ov.className = "nio-cc-overlay";
@@ -353,50 +384,59 @@ class NioCarCard extends HTMLElement {
         .nio-cc-overlay { position: fixed; inset: 0; z-index: 10000; display: flex;
                           align-items: center; justify-content: center;
                           background: rgba(0,0,0,.45); }
-        .nio-cc-dialog { background: var(--card-background-color, #fff);
+        /* Mirror HA's more-info dialog chrome: rounded surface, close on the LEFT,
+           a device breadcrumb above a large title, an action icon on the right. */
+        .nio-cc-dialog { background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
                          backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
                          color: var(--primary-text-color, #1c1c1c);
-                         border-radius: var(--ha-card-border-radius, 12px);
-                         width: min(420px, 92vw); max-height: 86vh; overflow-y: auto;
+                         border-radius: var(--ha-dialog-border-radius, 28px);
+                         width: min(480px, 94vw); max-height: 88vh; overflow-y: auto;
                          box-shadow: 0 8px 32px rgba(0,0,0,.35);
                          font-family: var(--mdc-typography-font-family, Roboto, system-ui, sans-serif); }
-        .nio-cc-head { display: flex; align-items: center; justify-content: space-between;
-                       padding: 14px 18px 4px; font-size: 18px; font-weight: 500; }
-        .nio-cc-head ha-icon { cursor: pointer; color: var(--secondary-text-color); }
-        .nio-cc-body { padding: 6px 18px; }
-        .nio-cc-body h3 { font-size: 17px; font-weight: 600; margin: 18px 0 6px;
-                          color: var(--primary-text-color); }
-        .nio-cc-body h3:first-child { margin-top: 6px; }
-        .nio-cc-row { display: flex; justify-content: space-between; padding: 12px 0;
-                      cursor: pointer; font-size: 14px; }
-        .nio-cc-row .val { color: var(--secondary-text-color); }
-        .nio-cc-foot { display: flex; justify-content: space-between; padding: 12px 18px 16px; }
-        .nio-cc-foot button { background: none; border: none; cursor: pointer;
-                              color: var(--primary-color, #03a9f4); font-size: 14px;
-                              font-weight: 500; padding: 8px 12px; border-radius: 6px; }
+        .nio-cc-head { display: flex; align-items: center; gap: 6px; padding: 12px 12px 8px; }
+        .nio-cc-head .icobtn { color: var(--primary-text-color); cursor: pointer; flex: none;
+                               --mdc-icon-size: 24px; padding: 6px; border-radius: 50%; }
+        .nio-cc-head .icobtn:hover { background: var(--secondary-background-color); }
+        .nio-cc-titles { flex: 1; min-width: 0; line-height: 1.25; }
+        .nio-cc-titles .dev { font-size: 13px; color: var(--secondary-text-color);
+                              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nio-cc-titles .ttl { font-size: 22px; font-weight: 400;
+                              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nio-cc-body { padding: 8px 12px 16px; }
+        .nio-cc-body h3 { font-size: 14px; font-weight: 500; margin: 16px 8px 2px;
+                          color: var(--secondary-text-color); }
+        .nio-cc-body h3:first-child { margin-top: 4px; }
+        /* native more-info member row: state-coloured icon + name/time + value */
+        .nio-cc-row { display: flex; align-items: center; gap: 16px; padding: 10px 8px;
+                      cursor: pointer; border-radius: 12px; }
+        .nio-cc-row:hover { background: var(--secondary-background-color); }
+        .nio-cc-row ha-state-icon { width: 24px; height: 24px; flex: none;
+                      --mdc-icon-size: 24px; color: var(--state-icon-color, var(--primary-text-color)); }
+        .nio-cc-row .meta { flex: 1; min-width: 0; line-height: 1.3; }
+        .nio-cc-row .nm { font-size: 15px; color: var(--primary-text-color);
+                          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nio-cc-row .rt { font-size: 12px; color: var(--secondary-text-color); }
+        .nio-cc-row .val { font-size: 15px; color: var(--secondary-text-color); white-space: nowrap; }
       </style>
       <div class="nio-cc-dialog">
         <div class="nio-cc-head">
-          <span>${this._title()} 车辆状态</span>
-          <ha-icon icon="mdi:close" class="nio-cc-close"></ha-icon>
+          <ha-icon icon="mdi:close" class="icobtn nio-cc-close"></ha-icon>
+          <div class="nio-cc-titles">
+            <div class="dev">${esc(this._title())}</div>
+            <div class="ttl">${esc({ state: "车辆状态", security: "安防细节" }[this._popupFocus] || "概览")}</div>
+          </div>
+          <ha-icon icon="mdi:refresh" class="icobtn nio-cc-refresh" title="数据刷新"></ha-icon>
         </div>
         <div class="nio-cc-body"></div>
-        <div class="nio-cc-foot">
-          <button class="nio-cc-refresh">数据刷新</button>
-          <button class="nio-cc-done">完成</button>
-        </div>
       </div>
     `;
     ov.addEventListener("click", (e) => {
       if (e.target === ov) this._closePopup();
     });
     ov.querySelector(".nio-cc-close").addEventListener("click", () => this._closePopup());
-    ov.querySelector(".nio-cc-done").addEventListener("click", () => this._closePopup());
     ov.querySelector(".nio-cc-refresh").addEventListener("click", () => {
       const ent = this._entities?.refresh;
-      if (ent && this._hass) {
-        this._hass.callService("button", "press", { entity_id: ent });
-      }
+      if (ent && this._hass) this._hass.callService("button", "press", { entity_id: ent });
     });
     document.body.appendChild(ov);
     this._overlay = ov;
@@ -418,40 +458,65 @@ class NioCarCard extends HTMLElement {
   _renderPopupBody() {
     if (!this._hass || !this._entities || !this._overlay) return;
     const E = this._entities;
-    const sections = [
-      { title: "车辆状态", rows: [["驾驶状态", E.driving], ["睡眠状态", E.sleeping]] },
+    const allSections = [
       {
+        key: "state",
+        title: "车辆状态",
+        rows: [["车辆状态", E.vehicle_state], ["驾驶状态", E.driving], ["睡眠状态", E.sleeping]],
+      },
+      {
+        key: "energy",
         title: "能源与续航",
         rows: [
           ["电池电量", E.battery],
+          ["充电状态", E.charging],
           ["续航(CLTC)", E.remaining_range],
           ["续航(实际)", E.remaining_actual_range],
           ["续航达成率", E.range_achievement_rate],
         ],
       },
-      { title: "安防细节", rows: [["车门状态", E.door], ["车窗状态", E.window]] },
+      { key: "security", title: "安防细节", rows: [["车门状态", E.door], ["车窗状态", E.window], ["车锁状态", E.lock]] },
     ];
+    // Icon-focused open → just that section; image/title open → the full overview.
+    const sections = this._popupFocus
+      ? allSections.filter((s) => s.key === this._popupFocus)
+      : allSections;
+    // In a focused (single-icon) popup the header already names the group, so the
+    // section title would just be the same words twice — drop it there.
+    const showTitle = !this._popupFocus;
+    const hass = this._hass;
     const body = this._overlay.querySelector(".nio-cc-body");
+    const rowHtml = (label, ent) => `
+      <div class="nio-cc-row" data-entity="${ent}">
+        <ha-state-icon></ha-state-icon>
+        <div class="meta"><div class="nm">${esc(label)}</div><ha-relative-time class="rt"></ha-relative-time></div>
+        <div class="val">${esc(formatState(hass, ent))}</div>
+      </div>`;
     body.innerHTML = sections
       .map(
         (s) => `
-        <h3>${s.title}</h3>
-        ${s.rows
-          .filter(([, ent]) => ent)
-          .map(
-            ([label, ent]) => `
-            <div class="nio-cc-row" data-entity="${ent}">
-              <span>${label}</span>
-              <span class="val">${formatState(this._hass, ent)}</span>
-            </div>`
-          )
-          .join("")}`
+        ${showTitle ? `<h3>${esc(s.title)}</h3>` : ""}
+        ${s.rows.filter(([, ent]) => ent).map(([label, ent]) => rowHtml(label, ent)).join("")}`
       )
       .join("");
+    // Hydrate the native elements (state-coloured icon + "x ago") and wire each
+    // row to open the real native more-info — exactly the dialog it imitates.
     body.querySelectorAll(".nio-cc-row").forEach((row) => {
+      const ent = row.dataset.entity;
+      const st = hass.states[ent];
+      const si = row.querySelector("ha-state-icon");
+      if (si) {
+        si.hass = hass;
+        si.stateObj = st;
+      }
+      const rt = row.querySelector("ha-relative-time");
+      if (rt && st) {
+        rt.hass = hass;
+        rt.datetime = new Date(st.last_changed);
+      }
       row.addEventListener("click", () => {
         this._closePopup();
-        fireEvent(this, "hass-more-info", { entityId: row.dataset.entity });
+        fireEvent(this, "hass-more-info", { entityId: ent });
       });
     });
   }
@@ -472,17 +537,26 @@ class NioCarCard extends HTMLElement {
         .nio-ord-overlay { position: fixed; inset: 0; z-index: 10000; display: flex;
                            align-items: flex-start; justify-content: center;
                            padding: 6vh 0; box-sizing: border-box; background: rgba(0,0,0,.45); }
-        .nio-ord-dialog { background: var(--card-background-color, #fff);
+        .nio-ord-dialog { position: relative;
+                          background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
                           backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
                           color: var(--primary-text-color, #1c1c1c);
-                          border-radius: var(--ha-card-border-radius, 12px);
-                          width: min(420px, 92vw); max-height: 86vh; overflow-y: auto;
+                          border-radius: var(--ha-dialog-border-radius, 28px);
+                          width: min(480px, 94vw); max-height: 88vh; overflow-y: auto;
                           box-shadow: 0 8px 32px rgba(0,0,0,.35);
                           font-family: var(--mdc-typography-font-family, Roboto, system-ui, sans-serif); }
-        .nio-ord-head { display: flex; align-items: center; justify-content: space-between;
-                        padding: 14px 18px 8px; font-size: 18px; font-weight: 500; }
-        .nio-ord-head ha-icon { cursor: pointer; color: var(--secondary-text-color); }
-        .nio-ord-body { padding: 4px 18px 8px; }
+        /* native more-info chrome: close left, device breadcrumb + title, actions right */
+        .nio-ord-head { display: flex; align-items: center; gap: 6px; padding: 12px 12px 6px; }
+        .nio-ord-head .icobtn { color: var(--primary-text-color); cursor: pointer; flex: none;
+                                --mdc-icon-size: 24px; padding: 6px; border-radius: 50%; }
+        .nio-ord-head .icobtn:hover { background: var(--secondary-background-color); }
+        .nio-ord-head .nio-ord-filter.active { color: var(--primary-color); }
+        .nio-ord-titles { flex: 1; min-width: 0; line-height: 1.25; }
+        .nio-ord-titles .dev { font-size: 13px; color: var(--secondary-text-color);
+                               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nio-ord-titles .ttl { font-size: 22px; font-weight: 400;
+                               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nio-ord-body { padding: 4px 16px 14px; }
         .nio-ord-loading, .nio-ord-empty { padding: 28px 4px; text-align: center;
                           color: var(--secondary-text-color); font-size: 14px; line-height: 1.6; }
         .nio-ord-sum { padding: 6px 0 12px; border-bottom: 1px solid var(--divider-color); }
@@ -526,37 +600,144 @@ class NioCarCard extends HTMLElement {
         .orow .amt { font-size: 17px; font-weight: 600; color: var(--primary-text-color); }
         .orow .ono { font-size: 11px; color: var(--secondary-text-color); }
         .ocard .ofee { margin-top: 12px; font-size: 12px; line-height: 1.5; color: var(--secondary-text-color); }
-        .nio-ord-foot { display: flex; justify-content: space-between; padding: 8px 18px 16px; }
-        .nio-ord-foot button { background: none; border: none; cursor: pointer;
-                               color: var(--primary-color, #03a9f4); font-size: 14px; font-weight: 500;
-                               padding: 8px 12px; border-radius: 6px; }
       </style>
       <div class="nio-ord-dialog">
         <div class="nio-ord-head">
-          <span>${esc(this._title())} 账单 / 订单</span>
-          <ha-icon icon="mdi:close" class="nio-ord-close"></ha-icon>
+          <ha-icon icon="mdi:close" class="icobtn nio-ord-close"></ha-icon>
+          <div class="nio-ord-titles">
+            <div class="dev">${esc(this._title())}</div>
+            <div class="ttl">账单 / 订单</div>
+          </div>
+          <ha-icon icon="mdi:filter-variant" class="icobtn nio-ord-filter" title="筛选订单类型"></ha-icon>
+          <ha-icon icon="mdi:refresh" class="icobtn nio-ord-refresh" title="订单刷新"></ha-icon>
         </div>
         <div class="nio-ord-body"><div class="nio-ord-loading">加载中…</div></div>
-        <div class="nio-ord-foot">
-          <button class="nio-ord-refresh">订单刷新</button>
-          <button class="nio-ord-done">完成</button>
-        </div>
       </div>
     `;
     ov.addEventListener("click", (e) => { if (e.target === ov) this._closeOrdersPopup(); });
     ov.querySelector(".nio-ord-close").addEventListener("click", () => this._closeOrdersPopup());
-    ov.querySelector(".nio-ord-done").addEventListener("click", () => this._closeOrdersPopup());
     ov.querySelector(".nio-ord-refresh").addEventListener("click", () => this._fetchOrders(true));
+    const fbtn = ov.querySelector(".nio-ord-filter");
+    fbtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._openOrdFilter(fbtn);
+    });
+    this._ordFilter = null;
     document.body.appendChild(ov);
     this._ordOverlay = ov;
     this._fetchOrders(false);
   }
 
   _closeOrdersPopup() {
+    this._closeOrdFilter();
     if (this._ordOverlay) {
       this._ordOverlay.remove();
       this._ordOverlay = null;
     }
+  }
+
+  _closeOrdFilter() {
+    if (this._ordFilterMenu) {
+      this._ordFilterMenu.remove();
+      this._ordFilterMenu = null;
+    }
+  }
+
+  _syncFilterIcon() {
+    const fi = this._ordOverlay && this._ordOverlay.querySelector(".nio-ord-filter");
+    if (fi) fi.classList.toggle("active", !!this._ordFilter);
+  }
+
+  /* Order-type filter — a dropdown of the 8 service types, mounted on body so the
+   * dialog's overflow:auto can't clip it. _ordFilter is a Set of selected types,
+   * or null meaning "all". */
+  _openOrdFilter(anchor) {
+    this._closeOrdFilter();
+    const all = (this._ord && this._ord.orders) || [];
+    const cnt = {};
+    for (const o of all) {
+      if (orderStatusCat(o.orderStatusName) === "cancelled") continue;
+      cnt[o.orderType] = (cnt[o.orderType] || 0) + 1;
+    }
+    const rect = anchor.getBoundingClientRect();
+    const top = Math.round(rect.bottom + 6);
+    const right = Math.max(8, Math.round(window.innerWidth - rect.right));
+    const layer = document.createElement("div");
+    layer.className = "nio-ofm-layer";
+    layer.innerHTML = `
+      <style>
+        .nio-ofm-layer { position: fixed; inset: 0; z-index: 10001; }
+        .nio-ofm { position: fixed; top: ${top}px; right: ${right}px; min-width: 200px; max-width: 252px;
+                   background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
+                   color: var(--primary-text-color); border-radius: 12px; padding: 6px;
+                   box-shadow: 0 6px 24px rgba(0,0,0,.35);
+                   font-family: var(--mdc-typography-font-family, Roboto, system-ui, sans-serif); }
+        .nio-ofm .ofm-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+                             cursor: pointer; border-radius: 8px; font-size: 14px; }
+        .nio-ofm .ofm-item:hover { background: var(--secondary-background-color); }
+        .nio-ofm .ofm-item ha-icon { --mdc-icon-size: 20px; flex: none; }
+        .nio-ofm .ofm-item .nm { flex: 1; white-space: nowrap; }
+        .nio-ofm .ofm-item .cnt { color: var(--secondary-text-color); font-size: 12px; }
+        .nio-ofm .ofm-sep { height: 1px; background: var(--divider-color); margin: 4px 6px; }
+      </style>
+      <div class="nio-ofm">
+        <div class="ofm-item ofm-all"><ha-icon></ha-icon><span class="nm">全部类型</span></div>
+        <div class="ofm-sep"></div>
+        ${ORDER_TYPE_ORDER.map(
+          (t) => `
+          <div class="ofm-item" data-type="${t}">
+            <ha-icon></ha-icon><span class="nm">${esc(ORDER_TYPE_NAMES[t] || t)}</span>
+            <span class="cnt">${cnt[t] || 0}</span>
+          </div>`
+        ).join("")}
+      </div>
+    `;
+    layer.addEventListener("click", (e) => {
+      if (e.target === layer) this._closeOrdFilter();
+    });
+    layer.querySelector(".ofm-all").addEventListener("click", () => {
+      // toggle all <-> none, so "clear then pick a few" is two taps
+      this._ordFilter = this._ordFilter ? null : new Set();
+      this._afterFilterChange();
+    });
+    layer.querySelectorAll(".ofm-item[data-type]").forEach((it) => {
+      it.addEventListener("click", () => {
+        const t = it.dataset.type;
+        const s = this._ordFilter ? new Set(this._ordFilter) : new Set(ORDER_TYPE_ORDER);
+        if (s.has(t)) s.delete(t);
+        else s.add(t);
+        this._ordFilter = s.size === ORDER_TYPE_ORDER.length ? null : s;
+        this._afterFilterChange();
+      });
+    });
+    document.body.appendChild(layer);
+    this._ordFilterMenu = layer;
+    this._paintFilterMenu();
+  }
+
+  _paintFilterMenu() {
+    const menu = this._ordFilterMenu;
+    if (!menu) return;
+    const sel = this._ordFilter;
+    const allIco = menu.querySelector(".ofm-all ha-icon");
+    if (allIco) {
+      allIco.setAttribute("icon", !sel ? "mdi:checkbox-multiple-marked" : "mdi:checkbox-multiple-blank-outline");
+      allIco.style.color = !sel ? "var(--primary-color)" : "var(--secondary-text-color)";
+    }
+    menu.querySelectorAll(".ofm-item[data-type]").forEach((it) => {
+      const on = !sel || sel.has(it.dataset.type);
+      const ico = it.querySelector("ha-icon");
+      ico.setAttribute("icon", on ? "mdi:checkbox-marked" : "mdi:checkbox-blank-outline");
+      ico.style.color = on ? "var(--primary-color)" : "var(--secondary-text-color)";
+    });
+  }
+
+  _afterFilterChange() {
+    this._ord.monthIdx = null; // months in range changed → re-anchor to current
+    this._ord.orderIdx = 0;
+    this._renderOrdersPopup();
+    this._syncFilterIcon();
+    this._paintFilterMenu();
   }
 
   async _fetchOrders(keepPos) {
@@ -580,16 +761,6 @@ class NioCarCard extends HTMLElement {
         monthIdx: keepPos ? prev.monthIdx : null,
         orderIdx: keepPos ? prev.orderIdx || 0 : 0,
       };
-      if (orders.length) {
-        const months = orders.map((o) => monthIndexCN(o.createTime));
-        const cur = monthIndexCN(Date.now());
-        this._ord.minMonth = Math.min(...months);
-        this._ord.maxMonth = Math.max(cur, ...months);
-        if (this._ord.monthIdx == null) {
-          this._ord.monthIdx = Math.min(Math.max(cur, this._ord.minMonth), this._ord.maxMonth);
-          this._ord.orderIdx = 0;
-        }
-      }
       this._renderOrdersPopup();
     } catch (err) {
       body.innerHTML = `<div class="nio-ord-loading">加载失败：${esc(
@@ -601,15 +772,27 @@ class NioCarCard extends HTMLElement {
   _renderOrdersPopup() {
     if (!this._ordOverlay || !this._ord) return;
     const body = this._ordOverlay.querySelector(".nio-ord-body");
-    const { orders } = this._ord;
-    if (!orders.length) {
+    const all = this._ord.orders || [];
+    if (!all.length) {
       body.innerHTML = `<div class="nio-ord-empty">暂无服务订单。</div>`;
       return;
     }
-    this._ord.monthIdx = Math.min(
-      Math.max(this._ord.monthIdx, this._ord.minMonth),
-      this._ord.maxMonth
-    );
+    // Apply the order-type filter (null = all 8 types).
+    const filter = this._ordFilter;
+    const orders = filter ? all.filter((o) => filter.has(o.orderType)) : all;
+    if (!orders.length) {
+      body.innerHTML = `<div class="nio-ord-empty">没有符合筛选条件的订单。<br>点右上角筛选器调整。</div>`;
+      return;
+    }
+    // Month range derives from the FILTERED set, so the arrows only span months
+    // that still have matching orders.
+    const monthsAll = orders.map((o) => monthIndexCN(o.createTime));
+    const curMonth = monthIndexCN(Date.now());
+    const minMonth = Math.min(...monthsAll);
+    const maxMonth = Math.max(curMonth, ...monthsAll);
+    if (this._ord.monthIdx == null)
+      this._ord.monthIdx = Math.min(Math.max(curMonth, minMonth), maxMonth);
+    this._ord.monthIdx = Math.min(Math.max(this._ord.monthIdx, minMonth), maxMonth);
     const mIdx = this._ord.monthIdx;
     const monthOrders = orders.filter((o) => monthIndexCN(o.createTime) === mIdx);
     if (this._ord.orderIdx >= monthOrders.length) this._ord.orderIdx = 0;
@@ -640,25 +823,25 @@ class NioCarCard extends HTMLElement {
     body.innerHTML = `
       <div class="nio-ord-sum">${sumHtml}</div>
       <div class="nio-ord-month">
-        <button class="nav-btn mprev" ${mIdx <= this._ord.minMonth ? "disabled" : ""}>‹</button>
+        <button class="nav-btn mprev" ${mIdx <= minMonth ? "disabled" : ""}>‹</button>
         <div class="mlabel">${monthLabelCN(mIdx)}
           <div class="msub">${msub}</div>
         </div>
-        <button class="nav-btn mnext" ${mIdx >= this._ord.maxMonth ? "disabled" : ""}>›</button>
+        <button class="nav-btn mnext" ${mIdx >= maxMonth ? "disabled" : ""}>›</button>
       </div>
       <div class="nio-ord-detail">${detail}</div>
     `;
 
     const q = (sel) => body.querySelector(sel);
     q(".mprev").addEventListener("click", () => {
-      if (this._ord.monthIdx > this._ord.minMonth) {
+      if (this._ord.monthIdx > minMonth) {
         this._ord.monthIdx--;
         this._ord.orderIdx = 0;
         this._renderOrdersPopup();
       }
     });
     q(".mnext").addEventListener("click", () => {
-      if (this._ord.monthIdx < this._ord.maxMonth) {
+      if (this._ord.monthIdx < maxMonth) {
         this._ord.monthIdx++;
         this._ord.orderIdx = 0;
         this._renderOrdersPopup();
@@ -736,32 +919,56 @@ class NioCarCard extends HTMLElement {
     };
     const stateOf = (ent) => (ent && hass.states[ent] ? hass.states[ent].state : null);
 
+    // Battery → hero badge over the car (top-right), charging-aware.
     const batt = stateOf(E.battery);
-    if (batt !== null) {
-      const lvl = Math.max(0, Math.min(100, Math.round(parseFloat(batt) / 10) * 10));
-      const icon =
-        lvl >= 100 ? "mdi:battery" : `mdi:battery-${lvl === 0 ? "outline" : lvl}`;
-      setIcon("battery", icon, `${Math.round(parseFloat(batt))}%`, parseFloat(batt) < 20);
+    const battEl = this.shadowRoot.getElementById("batt");
+    if (battEl && batt !== null && !isNaN(parseFloat(batt))) {
+      const pct = parseFloat(batt);
+      const lvl = Math.max(0, Math.min(100, Math.round(pct / 10) * 10));
+      const charging = stateOf(E.charging) === "on";
+      const icon = charging
+        ? lvl === 0
+          ? "mdi:battery-charging-outline"
+          : `mdi:battery-charging-${lvl}`
+        : lvl >= 100
+          ? "mdi:battery"
+          : `mdi:battery-${lvl === 0 ? "outline" : lvl}`;
+      battEl.querySelector("ha-icon").setAttribute("icon", icon);
+      battEl.querySelector(".bpct").textContent = `${Math.round(pct)}%`;
+      battEl.classList.toggle("alert", !charging && pct < 20);
     }
+
+    // Consolidated motion state — canonical tri-state from the vehicle_state
+    // sensor (行驶 / 驻车 / 睡眠) so the glyph always matches the detail popup's
+    // primary row. Falls back to the driving+sleeping binaries if unavailable.
+    const vs = stateOf(E.vehicle_state);
     const driving = stateOf(E.driving);
-    if (driving !== null) {
-      setIcon("driving", driving === "on" ? "mdi:steering" : "mdi:car-off",
-              driving === "on" ? "行驶" : "停放");
-    }
     const sleeping = stateOf(E.sleeping);
-    if (sleeping !== null) {
-      setIcon("sleeping", sleeping === "on" ? "mdi:sleep" : "mdi:sleep-off",
-              sleeping === "on" ? "休眠" : "唤醒");
+    const VS_ICON = {
+      driving: ["mdi:steering", "行驶"],
+      resting: ["mdi:sleep", "睡眠"],
+      parked: ["mdi:car-brake-parking", "驻车"],
+    };
+    let st = VS_ICON[vs];
+    if (!st && (driving !== null || sleeping !== null)) {
+      if (sleeping === "on") st = ["mdi:sleep", "睡眠"];
+      else if (driving === "on") st = ["mdi:steering", "行驶"];
+      else st = ["mdi:car-brake-parking", "驻车"];
     }
+    if (st) setIcon("state", st[0], st[1]);
+
+    // Consolidated security — door/window open (on) or lock unlocked (on) flags
+    // an alert; the label names which (门/窗/锁). All secure → shield-check.
     const door = stateOf(E.door);
-    if (door !== null) {
-      setIcon("door", door === "on" ? "mdi:car-door" : "mdi:car-door-lock",
-              door === "on" ? "未关" : "已关", door === "on");
-    }
     const win = stateOf(E.window);
-    if (win !== null) {
-      setIcon("window", win === "on" ? "mdi:window-open-variant" : "mdi:window-closed-variant",
-              win === "on" ? "未关" : "已关", win === "on");
+    const lock = stateOf(E.lock);
+    if (door !== null || win !== null || lock !== null) {
+      const issues = [];
+      if (door === "on") issues.push("门");
+      if (win === "on") issues.push("窗");
+      if (lock === "on") issues.push("锁");
+      if (issues.length) setIcon("security", "mdi:shield-alert", issues.join("·"), true);
+      else setIcon("security", "mdi:shield-check", "安防");
     }
     // live-refresh popup values while it is open
     if (this._overlay && this._overlay.isConnected) this._renderPopupBody();
