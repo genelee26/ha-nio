@@ -11,6 +11,9 @@
 - 诊断包新增 `capture_fields`：`requested`（抓包请求了哪些段）+ `missing_critical`（缺了哪些关键段：exterior / soc / door / window / hvac / fota）—— 一眼区分「抓包字段不全 / 车离线 / 字段名不同」三种成因。
 - 调试子页说明追加：下载诊断后建议到 `github.com/genelee26/ha-nio/issues` 提 issue 并附文件，方便跟踪。
 
+**新增**
+- 抓包字段完整性检查：启动时若捕获请求的 `field=` 缺关键段（exterior / soc / door / window / hvac / fota），在「设置 → 维修」弹**非阻塞警告**，引导从车辆主页下拉刷新重抓完整请求；抓包补全后自动消除。
+
 ## v0.4.3 — 2026-06-18
 
 车卡布局整合 + 弹窗原生化 + 账单筛选。
