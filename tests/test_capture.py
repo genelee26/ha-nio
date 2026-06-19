@@ -139,6 +139,32 @@ def test_reconstruct_defaults_when_missing():
     print("  v1 reconstruction defaults ✓")
 
 
+def test_query_fields():
+    assert capture.query_fields("field=soc&field=door&app_ver=6.6.0") == {"soc", "door"}
+    assert capture.query_fields("app_ver=6.3.0&sign=x") == set()  # no field= selection
+    # must not match a substring of another key
+    assert capture.query_fields("xfield=nope&field=hvac") == {"hvac"}
+    print("  field= set extraction ✓")
+
+
+def test_missing_critical_fields():
+    # A narrow capture (the usual "stuck unknown" cause): only exterior + soc.
+    narrow = "field=exterior&field=soc&app_ver=6.5.3&timestamp=1&sign=x"
+    assert capture.missing_critical_fields(narrow) == ["door", "window", "hvac", "fota"], (
+        capture.missing_critical_fields(narrow)
+    )
+    # A full capture requests every section -> nothing missing.
+    full = "&".join(f"field={f}" for f in const.API_FIELDS) + "&sign=x"
+    assert capture.missing_critical_fields(full) == [], capture.missing_critical_fields(full)
+    # No field= at all -> server returns its default (full) set; don't false-alarm.
+    assert capture.missing_critical_fields("app_ver=6.3.0&timestamp=1&sign=x") == []
+    # Returned in CRITICAL_FIELDS order, deterministically.
+    assert capture.missing_critical_fields("field=soc&sign=x") == [
+        f for f in const.CRITICAL_FIELDS if f != "soc"
+    ]
+    print("  missing critical fields (narrow/full/no-field/order) ✓")
+
+
 if __name__ == "__main__":
     for fn in (
         test_parse_full_url,
@@ -149,6 +175,8 @@ if __name__ == "__main__":
         test_app_ver_from_query,
         test_reconstruct_query_v1_matches_old_client,
         test_reconstruct_defaults_when_missing,
+        test_query_fields,
+        test_missing_critical_fields,
     ):
         print(f"{fn.__name__}:")
         fn()

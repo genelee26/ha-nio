@@ -24,6 +24,7 @@ except ImportError:  # pragma: no cover - HA-free test imports it top-level
 # vehicle_id sits in the path: /api/2/rvs/vehicle/<id>/status
 _VEHICLE_ID_RE = re.compile(r"/vehicle/([^/?#]+)/status")
 _APP_VER_RE = re.compile(r"(?:^|&)app_ver=([^&]+)")
+_FIELD_RE = re.compile(r"(?:^|&)field=([^&]+)")
 
 
 def parse_capture(raw: str) -> tuple[str, str]:
@@ -68,6 +69,27 @@ def app_ver_from_query(query: str) -> str | None:
     """Pull ``app_ver`` out of a query string (for the matching User-Agent)."""
     match = _APP_VER_RE.search(query or "")
     return match.group(1) if match else None
+
+
+def query_fields(query: str) -> set[str]:
+    """The set of ``field=…`` sections a status query requests."""
+    return set(_FIELD_RE.findall(query or ""))
+
+
+def missing_critical_fields(query: str) -> list[str]:
+    """Critical sections (``const.CRITICAL_FIELDS``) the capture doesn't request.
+
+    The usual cause of sensors stuck at "unknown": the server only returns the
+    sections the (sign-locked) query asks for, so a capture from a lightweight
+    request can never populate door/window/hvac/fota/… Returned in
+    ``CRITICAL_FIELDS`` order. A query that selects *no* ``field=`` at all is
+    left alone — the server then returns its default (full) set, so flagging it
+    would be a false alarm.
+    """
+    present = query_fields(query)
+    if not present:
+        return []
+    return [f for f in const.CRITICAL_FIELDS if f not in present]
 
 
 def reconstruct_query_v1(data: dict) -> str:
