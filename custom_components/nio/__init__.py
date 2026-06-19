@@ -9,11 +9,12 @@ from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.loader import async_get_integration
 
 from .api import NioApiClient, NioOrdersClient
-from .capture import reconstruct_query_v1
+from .capture import missing_critical_fields, reconstruct_query_v1
 from .const import (
     CONF_MODEL,
     CONF_QUERY,
@@ -35,6 +36,30 @@ PLATFORMS: list[Platform] = [
     Platform.DEVICE_TRACKER,
     Platform.SENSOR,
 ]
+
+
+def _check_capture_completeness(hass: HomeAssistant, entry: NioConfigEntry) -> None:
+    """Raise/clear a repair issue if the capture omits critical field sections.
+
+    A narrow ``field=`` set is the usual cause of sensors stuck at "unknown":
+    the server only returns the sections the (sign-locked) query requested, so
+    the missing ones can never populate. Re-evaluated on every setup, so the
+    issue clears itself once a fuller capture is pasted.
+    """
+    issue_id = f"incomplete_capture_{entry.entry_id}"
+    missing = missing_critical_fields(entry.data.get(CONF_QUERY, ""))
+    if missing:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="incomplete_capture",
+            translation_placeholders={"fields": ", ".join(missing)},
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
@@ -78,6 +103,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
     entry.runtime_data = NioRuntimeData(status=coordinator, orders=orders_coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    _check_capture_completeness(hass, entry)
     return True
 
 

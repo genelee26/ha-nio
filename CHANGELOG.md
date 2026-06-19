@@ -2,6 +2,15 @@
 
 本项目（HACS 自定义集成 `nio`）的版本更新记录，新版在上。
 
+## v0.4.4 — 2026-06-19
+
+诊断增强：精确脱敏 + 抓包字段完整性。
+
+**改进（诊断）**
+- 诊断包里的 status `query` 由**整条打码**改为**精确脱敏**：只盖 `sign` / `device_id` / `timestamp`，**保留 `field=` 列表与 `app_ver`**。部分传感器长期「未知」多半是抓包的 `field=` 不全（签名锁死、补不了字段），现在分享出来的诊断包能直接看出来。
+- 诊断包新增 `capture_fields`：`requested`（抓包请求了哪些段）+ `missing_critical`（缺了哪些关键段：exterior / soc / door / window / hvac / fota）—— 一眼区分「抓包字段不全 / 车离线 / 字段名不同」三种成因。
+- 调试子页说明追加：下载诊断后建议到 `github.com/genelee26/ha-nio/issues` 提 issue 并附文件，方便跟踪。
+
 ## v0.4.3 — 2026-06-18
 
 车卡布局整合 + 弹窗原生化 + 账单筛选。

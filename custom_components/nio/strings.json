@@ -42,7 +42,7 @@
       },
       "debug": {
         "title": "Debug mode",
-        "description": "When on, injected debug orders show and count in the popup/sensors (never in long-term statistics), and the refresh buttons prompt to download diagnostics for the developer.",
+        "description": "When on, injected debug orders show and count in the popup/sensors (never in long-term statistics), and the refresh buttons prompt to download diagnostics for the developer. After downloading the diagnostics, please open an issue at github.com/genelee26/ha-nio/issues and attach the file so it can be tracked.",
         "data": { "debug": "Enable debug mode" }
       },
       "intervals": {
@@ -161,6 +161,12 @@
     "button": {
       "refresh": { "name": "Refresh data" },
       "refresh_orders": { "name": "Refresh service orders" }
+    }
+  },
+  "issues": {
+    "incomplete_capture": {
+      "title": "NIO capture is missing data fields",
+      "description": "The captured status request doesn't ask for these sections: {fields}. The matching sensors (doors, windows, lock, temperatures, firmware…) will stay \"unknown\" — the signature locks the request, so the missing sections can't be added. Fix: capture a status request from the vehicle's main page (pull-to-refresh) so it asks for the full field set, then update the credentials (NIO → Configure → Credentials) with the new capture."
     }
   }
 }

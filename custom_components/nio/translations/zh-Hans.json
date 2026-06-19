@@ -42,7 +42,7 @@
       },
       "debug": {
         "title": "调试模式",
-        "description": "开启后：注入的调试订单会在弹窗/传感器里显示并计数（但永不进入长期统计），刷新按钮会提示下载诊断发给开发者。",
+        "description": "开启后：注入的调试订单会在弹窗/传感器里显示并计数（但永不进入长期统计），刷新按钮会提示下载诊断发给开发者。下载诊断后，建议到 github.com/genelee26/ha-nio/issues 提一个 issue 并附上该文件，方便跟踪。",
         "data": { "debug": "启用调试模式" }
       },
       "intervals": {
@@ -161,6 +161,12 @@
     "button": {
       "refresh": { "name": "数据刷新" },
       "refresh_orders": { "name": "刷新服务订单" }
+    }
+  },
+  "issues": {
+    "incomplete_capture": {
+      "title": "NIO 抓包缺少数据字段",
+      "description": "捕获的 status 请求没有请求这些段：{fields}。对应的传感器（车门、车窗、车锁、温度、固件…）会一直显示「未知」——签名锁死了请求，缺的段补不进去。解决：从车辆主页下拉刷新时重新抓一条 status 请求（这样会请求完整字段集），再到 NIO → 配置 → 凭证 用新抓包更新。"
     }
   }
 }

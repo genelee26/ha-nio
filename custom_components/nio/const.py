@@ -83,6 +83,14 @@ API_FIELDS = [
     "charge_status_order",
 ]
 
+# Status `field=` sections whose absence in a capture leaves the matching
+# sensors stuck at "unknown": the server only returns the sections the
+# (sign-locked) query asked for, so a capture taken from a lightweight request
+# can never populate them. Surfaced in diagnostics so users re-capture a full
+# request. Maps to: exterior_status, soc_status, door_status, window_status,
+# hvac_status, fota_status.
+CRITICAL_FIELDS = ("exterior", "soc", "door", "window", "hvac", "fota")
+
 # exterior_status.vehicle_state observed values
 VEHICLE_STATE_DRIVING = 1
 VEHICLE_STATE_PARKED = 2
