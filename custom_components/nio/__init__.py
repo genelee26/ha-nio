@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
-from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.loader import async_get_integration
 
 from .api import NioApiClient, NioOrdersClient
 from .capture import missing_critical_fields, reconstruct_query_v1
@@ -22,8 +18,8 @@ from .const import (
     CONF_VEHICLE_ID,
     DEFAULT_MODEL,
     DOMAIN,
-    STATIC_URL_BASE,
 )
+from .frontend import async_register_card, async_unregister_card
 from .coordinator import NioConfigEntry, NioDataUpdateCoordinator, NioRuntimeData
 from .orders_coordinator import NioOrdersCoordinator
 from .services import async_register_services
@@ -64,23 +60,7 @@ def _check_capture_completeness(hass: HomeAssistant, entry: NioConfigEntry) -> N
 
 async def async_setup_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
     """Set up NIO from a config entry."""
-    # Serve bundled assets (map marker logo, car renders, lovelace card)
-    # and auto-register the card JS — once per HA run.
-    if not hass.data.setdefault(DOMAIN, {}).get("static_registered"):
-        await hass.http.async_register_static_paths(
-            [
-                StaticPathConfig(
-                    STATIC_URL_BASE,
-                    str(Path(__file__).parent / "static"),
-                    cache_headers=True,
-                )
-            ]
-        )
-        integration = await async_get_integration(hass, DOMAIN)
-        add_extra_js_url(
-            hass, f"{STATIC_URL_BASE}/nio-car-card.js?v={integration.version}"
-        )
-        hass.data[DOMAIN]["static_registered"] = True
+    await async_register_card(hass)
     async_register_services(hass)  # idempotent (self-guards on has_service)
     session = async_get_clientsession(hass)
     client = NioApiClient(
@@ -135,3 +115,9 @@ async def _async_update_listener(hass: HomeAssistant, entry: NioConfigEntry) -> 
 async def async_unload_entry(hass: HomeAssistant, entry: NioConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: NioConfigEntry) -> None:
+    """Remove the card resource once the last NIO entry is deleted."""
+    if not hass.config_entries.async_entries(DOMAIN):
+        await async_unregister_card(hass)
