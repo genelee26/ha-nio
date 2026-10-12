@@ -1,11 +1,12 @@
 """Serve the bundled Lovelace card and register it as a dashboard resource.
 
-``add_extra_js_url`` alone is racy: the URL is baked into ``index.html`` at
-render time, but HA serves the frontend before custom integrations finish
-setting up. A tab that stayed open across a restart (or was opened during
-startup) never loads the card and shows "Configuration error" until F5.
-Lovelace resources are persisted in storage and fetched by the dashboard
-itself, so they don't have that problem — same mechanism HACS cards use.
+``add_extra_js_url`` modules are imported very early — before the frontend
+installs its scoped custom-element registry polyfill. When the card wins that
+race it is defined on the native registry, the polyfilled
+``customElements.get("nio-car-card")`` returns undefined, and the dashboard
+shows "Configuration error" until a lucky F5. Lovelace resources load after
+the polyfill (same mechanism HACS cards use), so the card goes there and the
+extra-module path is used only when resources can't be written (YAML mode).
 """
 
 from __future__ import annotations
@@ -52,15 +53,21 @@ async def async_register_card(hass: HomeAssistant) -> None:
     )
     integration = await async_get_integration(hass, DOMAIN)
     url = f"{CARD_PATH}?v={integration.version}"
-
-    # Kept as fallback for YAML-mode dashboards. Same URL as the resource, so
-    # the browser's module map imports it only once.
-    add_extra_js_url(hass, url)
     domain_data["static_registered"] = True
 
+    if not await _async_ensure_resource(hass, url):
+        # YAML-mode dashboards only. Extra modules load before the frontend
+        # installs its scoped custom-element registry polyfill, so an element
+        # defined from here can be invisible to customElements.get() — never
+        # load the card both ways.
+        add_extra_js_url(hass, url)
+
+
+async def _async_ensure_resource(hass: HomeAssistant, url: str) -> bool:
+    """Create or update the card's Lovelace resource; False if not possible."""
     resources = _resources(hass)
     if resources is None:
-        return
+        return False
     try:
         await resources.async_get_info()  # loads the collection if needed
         for item in resources.async_items():
@@ -69,10 +76,12 @@ async def async_register_card(hass: HomeAssistant) -> None:
                     await resources.async_update_item(
                         item["id"], {"res_type": "module", "url": url}
                     )
-                return
+                return True
         await resources.async_create_item({"res_type": "module", "url": url})
     except Exception:  # noqa: BLE001 — never block setup over a resource
         _LOGGER.warning("Could not register %s as a Lovelace resource", url, exc_info=True)
+        return False
+    return True
 
 
 async def async_unregister_card(hass: HomeAssistant) -> None:

@@ -2,6 +2,14 @@
 
 本项目（HACS 自定义集成 `nio`）的版本更新记录，新版在上。
 
+## v0.4.6 — 2026-10-12
+
+真正修好车卡偶发「配置错误」（v0.4.5 的原因分析不完整）。
+
+**修复**
+- 真因：`add_extra_js_url` 加载的模块执行得非常早，会赶在 HA 前端装上 scoped custom element registry polyfill **之前**。卡片若抢先注册，就落在浏览器原生注册表里，而 polyfill 接管后的 `customElements.get("nio-car-card")` 查不到它，仪表盘于是显示「Custom element doesn't exist」；按 F5 只是重新赌一次加载顺序。
+- 能登记仪表盘资源时（storage 模式）**不再调用 `add_extra_js_url`**，只走资源加载（时机在 polyfill 之后，与 HACS 卡片一致）；只有 YAML 模式写不了资源时才退回 extra module。v0.4.5 两条路径同时保留、URL 相同，浏览器只执行最早的那次，所以问题依旧。
+
 ## v0.4.5 — 2026-10-12
 
 修复车辆卡片偶发「配置错误」。
